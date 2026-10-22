@@ -9,11 +9,12 @@ import { PlanEditorScreen } from "./screens/PlanEditorScreen";
 import { TodayScreen } from "./screens/TodayScreen";
 import { SessionSummaryScreen } from "./screens/SessionSummaryScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { WeeklyReviewScreen } from "./screens/WeeklyReviewScreen";
 import "./styles/prototype.css";
 
-function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "settings" {
+function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "settings" | "review" {
   const route = window.location.hash.replace("#", "");
-  return route === "plan-editor" || route === "today" || route === "summary" || route === "settings" ? route : "today";
+  return route === "plan-editor" || route === "today" || route === "summary" || route === "settings" || route === "review" ? route : "today";
 }
 
 export default function App() {
@@ -36,6 +37,6 @@ export default function App() {
     dispatch(action);
     if (action.type === "NAVIGATE") window.history.replaceState(null, "", `#${action.route}`);
   };
-  const screen = state.route === "plans" ? <PlansScreen state={state} dispatch={navigateDispatch} /> : state.route === "plan-editor" ? <PlanEditorScreen state={state} dispatch={navigateDispatch} /> : state.route === "today" ? <TodayScreen state={state} dispatch={navigateDispatch} /> : state.route === "settings" ? <SettingsScreen state={state} dispatch={navigateDispatch} /> : <SessionSummaryScreen state={state} dispatch={navigateDispatch} />;
+  const screen = state.route === "plans" ? <PlansScreen state={state} dispatch={navigateDispatch} /> : state.route === "plan-editor" ? <PlanEditorScreen state={state} dispatch={navigateDispatch} /> : state.route === "today" ? <TodayScreen state={state} dispatch={navigateDispatch} /> : state.route === "settings" ? <SettingsScreen state={state} dispatch={navigateDispatch} /> : state.route === "review" ? <WeeklyReviewScreen state={state} dispatch={navigateDispatch} /> : <SessionSummaryScreen state={state} dispatch={navigateDispatch} />;
   return <AppShell state={state} dispatch={navigateDispatch}><PrototypeNotice />{state.error && <div className="error-banner">{state.error}</div>}{screen}</AppShell>;
 }

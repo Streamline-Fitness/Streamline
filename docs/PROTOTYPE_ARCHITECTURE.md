@@ -179,6 +179,8 @@ type PlanDay = {
   weekday?: number; // Monday = 1, Sunday = 7; absent means an unscheduled day
   name: string;
   order: number;
+  isRestDay?: boolean;
+  reflectionEnabled?: boolean;
 };
 
 type PlanBlockType = "straightSets" | "superset" | "circuit" | "timedSequence";
@@ -573,13 +575,12 @@ Charts can initially be simple SVG lines, bars, dots, and a calendar grid. The p
 
 ### Sunday review
 
-- generated weekly summary
-- done versus planned
-- new PRs
-- skipped days and reasons
-- editable reflection and next-week goal
-- save review
-- prominent stale state after later edits
+- Rest days can optionally enable a weekly reflection; the seeded Sunday is a rest day with reflection enabled.
+- On a reflection-enabled rest day, the reflection is the Today page content rather than a separate prompt or destination.
+- Weeks run Monday through Sunday. The review shows logged sessions, completed/partial/skipped counts, set entries, reps, and hold seconds.
+- Reflection and next-week goal are editable and stored with the week's Monday start date.
+- Starting or changing a session in that week marks a saved review stale; saving again clears the stale state.
+- PRs and richer planned-versus-completed analytics remain future additions.
 
 ### Import
 
@@ -623,7 +624,7 @@ Add history editing and the ambiguity-reporting text importer. Seed or import th
 
 ### Slice 5 — review and analytics
 
-Add Sunday review, stale behavior, PRs, and all chart selectors. Render only the charts needed to assess whether the metrics are useful.
+The optional rest-day weekly reflection and stale behavior are implemented. Add PRs and chart selectors; render only the charts needed to assess whether the metrics are useful.
 
 ### Slice 6 — export and prototype cleanup
 
@@ -644,7 +645,7 @@ The prototype is useful when a reviewer can perform this walkthrough without con
 9. Refresh the browser and confirm the session remains.
 10. Edit the plan, return to the old session, and confirm its historical targets are unchanged.
 11. Open Analytics and see the new records reflected.
-12. Open Sunday review, save it, edit an earlier session, and see `is_stale` become true.
+12. Enable reflection on a rest day, save the week's review, then start or change a session in that week and see the review become stale.
 13. Import an ambiguous text line and confirm it is flagged rather than guessed.
 14. Export JSON, reset demo data, and import the JSON back.
 
@@ -670,7 +671,6 @@ The prototype should not be copied line-for-line into the iOS app. Its value is 
 
 The source spec leaves these questions open. The prototype should make each one visible rather than burying a choice in UI code:
 
-- Monday or Tuesday as the canonical week start
 - whether rest records planned or actual duration
 - whether side-specific stretches are separate entries
 - whether lead-in applies to reps

@@ -5,7 +5,7 @@
 ## Current state
 
 - **Overall phase:** Implementation
-- **Current slice:** Seeded weekly training template
+- **Current slice:** Seeded weekly training template and optional rest-day reflection
 - **Next implementation slice:** Hands-on walkthrough of the seeded week
 - **Prototype runnable:** Yes — run `npm install` then `npm run dev`
 - **Last updated:** 2026-10-21
@@ -18,6 +18,8 @@
 - Revised the model so users create and activate their own plans instead of using a hard-coded routine.
 - Added explicit plan days, block types, round/rest ranges, exercise targets, side modes, and session plan snapshots.
 - Replaced the initial lower-body demo routine with the supplied Monday-Sunday weekly training template, including active/passive mobility and progression tests.
+- Seeded Sunday as a rest day with weekly reflection enabled; plan days can independently enable reflection when marked as rest days.
+- Added a weekly reflection screen with a Monday-Sunday activity summary, editable reflection and next-week goal, persistence, and stale-review state when the week's sessions change.
 - Scaffolded the Vite + React + TypeScript application.
 - Implemented the first plan-authoring flow: plans, training days, blocks, exercise targets, side mode, custom exercises, and active-plan selection.
 - Implemented Today plan preview, rep logging, previous-result display, session finish, summary editing, and local browser persistence.
@@ -80,12 +82,12 @@
 
 ## In progress
 
-- The weekly template is seeded and builds successfully. The next work is to walk through the weekday ordering, set/rest behavior, and untargeted hold logging in the browser.
+- The seeded week and Sunday reflection workflow build successfully. The next work is to walk through weekday ordering, set/rest behavior, untargeted hold logging, and saving/revisiting a weekly reflection in the browser.
+- Browser smoke verification confirmed the seeded Sunday rest day, reflection toggle, review save across reload, and stale marking after starting a session in the reviewed week. On reflection-enabled rest days, Today renders the weekly reflection and editable form directly; the extra rest-day card and open button are gone. Browser verification confirmed the reflection is visible on Sunday with no rest-day intro. The full seeded-week walkthrough remains pending.
 
 ## Not yet implemented
 
-- History, import, weekly review, analytics, and export
-- The Sunday weekly-reflection workflow; Sunday is currently a reflection-only plan day
+- History, import, PRs, richer analytics, and export
 
 ## Recommended next step
 
@@ -96,6 +98,8 @@ Verify the seeded weekly template in the browser:
 3. Confirm each 60-second active stretch advances after Continue despite the block's 0-second rest; log a Dead Hang or Saturday progression test and confirm the stopwatch records seconds without a target range.
 4. Check progression rest behavior, especially the 2-3 minute between-exercise note on Tuesday and Thursday.
 5. Finish a session, add a session note, and confirm the duration is calculated from session timestamps.
+6. Confirm Sunday shows the weekly reflection directly, save both fields, and verify later changes to that week's sessions mark the review stale.
+7. In Plans, disable reflection on the Sunday rest day and confirm the reflection action no longer appears; re-enable it and verify the review is still available.
 
 Do not begin analytics or visual polish until this complete path is usable.
 
@@ -104,6 +108,8 @@ Do not begin analytics or visual polish until this complete path is usable.
 | Date | Change | Verification |
 | --- | --- | --- |
 | 2026-10-21 | Made untargeted hold timers manual-stop | `npm run build` passes; browser walkthrough pending |
+| 2026-10-21 | Added optional weekly reflection on rest days | `npm run build` passes; browser verified seed, toggle visibility, persistence after reload, and stale state after a same-week session start |
+| 2026-10-21 | Made reflection the rest-day content | `npm run build` passes; browser confirmed Sunday renders the reflection form directly without the rest-day intro or a separate open button |
 | 2026-10-21 | Fixed hold-complete sound on zero-rest transitions | `npm run build` passes; browser audio check pending |
 | 2026-10-21 | Fixed timed progression with zero rest | `npm run build` passes; browser walkthrough pending |
 | 2026-10-21 | Seeded the supplied weekly training template | `npm run build` passes; browser walkthrough pending |

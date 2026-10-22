@@ -8,6 +8,7 @@ import type { Action } from "../state/reducer";
 import { ExerciseCard } from "../ui/ExerciseCard";
 import { playEventSound, primeEventSounds } from "../ui/sounds";
 import { SessionSummaryScreen } from "./SessionSummaryScreen";
+import { WeeklyReviewScreen } from "./WeeklyReviewScreen";
 
 type Props = { state: AppState; dispatch: (action: Action) => void };
 
@@ -120,7 +121,7 @@ export function TodayScreen({ state, dispatch }: Props) {
       : !scheduledDay ? <div className="empty-panel no-plan-day"><div className="eyebrow">NOT PLANNED</div><h3>No training day for this date</h3><p>Your active plan has no day assigned to {new Date(`${state.selectedDate}T12:00:00`).toLocaleDateString(undefined, { weekday: "long" })}.</p><button className="button primary" onClick={() => dispatch({ type: "NAVIGATE", route: "plans" })}>Open Plans to add a day</button></div>
         : <>
            {showDayPicker && <div className="plan-selector"><label htmlFor="day-selector">Choose your {weekdayName} workout</label><select id="day-selector" title={`Choose which ${weekdayName} workout to do`} value={selectedDayId ?? ""} onChange={(event) => dispatch({ type: "SELECT_PLAN_DAY", dayId: event.target.value })}>{scheduledDays.map((day) => <option key={day.id} value={day.id}>{day.name}</option>)}</select><span>Your active plan has multiple workouts scheduled for {weekdayName}.</span></div>}
-          {completedSession?.date === state.selectedDate && !activeSession ? <SessionSummaryScreen state={state} dispatch={dispatch} sessionId={completedSession.id} embedded /> : <>
+          {completedSession?.date === state.selectedDate && !activeSession ? <SessionSummaryScreen state={state} dispatch={dispatch} sessionId={completedSession.id} embedded /> : selectedDay?.isRestDay && selectedDay.reflectionEnabled ? <WeeklyReviewScreen key={state.selectedDate} state={state} dispatch={dispatch} embedded /> : selectedDay?.isRestDay ? <div className="rest-day-panel empty-panel"><div className="eyebrow">REST DAY</div><h3>{selectedDay.name}</h3><p>Take today off from planned training.</p></div> : <>
             {activeSession && <div className="session-running"><div><span className="live-dot" /> Session in progress</div><span>Started {activeSession.startedAt ? new Date(activeSession.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "now"}</span></div>}
             {!activeSession && selectedDay && <button className="button primary start-button" title="Start a session from this plan-day snapshot" onClick={() => dispatch({ type: "START_SESSION", sessionId: newId("session"), date: state.selectedDate, planId: activePlan.id, planDayId: selectedDay.id, now: Date.now() })}>Start session <span>→</span></button>}
             {Object.entries(grouped).map(([blockId, blockItems]) => <TodayBlock key={blockId} blockId={blockId} blockItems={blockItems} state={state} dispatch={dispatch} openBlocks={openBlocks} setOpenBlocks={setOpenBlocks} priorDate={priorDate} />)}

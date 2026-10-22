@@ -1,4 +1,4 @@
-import { expandSessionPlan, getScheduledDayForDate, todayISO, weekdayFromISO } from "../domain/plan";
+import { expandSessionPlan, getScheduledDayForDate, todayISO, weekdayFromISO, weekStartForDate } from "../domain/plan";
 import { newId } from "../domain/ids";
 import { cloneData, createSeedData, makeDemoHistory } from "../domain/seed";
 import { currentGuidedPlanExercise, latestFinishedSession, nextGuidedPlanExercise, nextPlanExerciseAfterEntry } from "../domain/session";
@@ -26,7 +26,7 @@ export type Action =
   | { type: "UPDATE_PLAN"; planId: ID; name: string; description: string; now: number }
   | { type: "ACTIVATE_PLAN"; planId: ID }
   | { type: "ADD_PLAN_DAY"; dayId: ID; planId: ID; name: string; weekday?: number }
-  | { type: "UPDATE_PLAN_DAY"; dayId: ID; name: string; weekday?: number }
+  | { type: "UPDATE_PLAN_DAY"; dayId: ID; name: string; weekday?: number; isRestDay?: boolean; reflectionEnabled?: boolean }
   | { type: "DELETE_PLAN_DAY"; dayId: ID }
   | { type: "ADD_PLAN_BLOCK"; blockId: ID; dayId: ID; name: string; blockType: PlanBlockType }
   | { type: "UPDATE_PLAN_BLOCK"; blockId: ID; name: string; blockType: PlanBlockType; roundsMin: number; roundsMax: number; restMinS: number; restMaxS: number }
@@ -42,6 +42,7 @@ export type Action =
   | { type: "CONTINUE_GUIDED_EXERCISE"; sessionId: ID; planExerciseId: ID; now: number }
   | { type: "SKIP_REST"; sessionId: ID; planExerciseId: ID; now: number }
   | { type: "UPDATE_SETTINGS"; defaultLeadInS: number }
+  | { type: "SAVE_WEEKLY_REVIEW"; weekStart: string; reflection: string; nextWeekGoal: string; reviewedAt: number }
   | { type: "COMMIT_REP_SET"; setId: ID; sessionId: ID; planExerciseId: ID; exerciseId: ID; setNo: number; reps: number; now: number }
   | { type: "SKIP_GUIDED_EXERCISE"; setId: ID; sessionId: ID; planExerciseId: ID; exerciseId: ID; setNo: number; reason: string; now: number }
   | { type: "SKIP_GUIDED_BLOCK"; skippedBlockId: ID; sessionId: ID; blockId: ID; reason: string; now: number }
@@ -61,7 +62,13 @@ function withSession(state: AppState, sessionId: ID, update: (session: Session) 
   if (!session) return { ...state, error: "That session is no longer available." };
   const data = cloneData(state.data);
   data.sessions[sessionId] = update(session);
+  markReviewStale(data, session.date);
   return updateState(state, data);
+}
+
+function markReviewStale(data: AppState["data"], date: string): void {
+  const review = data.weeklyReviews[weekStartForDate(date)];
+  if (review?.reviewedAt !== undefined) review.isStale = true;
 }
 
 function timerForTimedItem(data: AppState["data"], sessionId: ID, planExerciseId: ID, now: number, includePreparation: boolean): GuidedTimer {
@@ -145,6 +152,17 @@ export function reducer(state: AppState, action: Action): AppState {
       data.settings.defaultLeadInS = Math.max(0, action.defaultLeadInS);
       return updateState(state, data);
     }
+    case "SAVE_WEEKLY_REVIEW": {
+      const data = cloneData(state.data);
+      data.weeklyReviews[action.weekStart] = {
+        weekStart: action.weekStart,
+        reflection: action.reflection,
+        nextWeekGoal: action.nextWeekGoal,
+        reviewedAt: action.reviewedAt,
+        isStale: false,
+      };
+      return updateState(state, data);
+    }
     case "CREATE_PLAN": {
       const data = cloneData(state.data);
       data.plans[action.planId] = { id: action.planId, name: action.name, isActive: false, createdAt: action.now, updatedAt: action.now };
@@ -176,7 +194,13 @@ export function reducer(state: AppState, action: Action): AppState {
       const day = state.data.planDays[action.dayId];
       if (!day) return state;
       const data = cloneData(state.data);
-      data.planDays[action.dayId] = { ...day, name: action.name, weekday: action.weekday };
+      data.planDays[action.dayId] = {
+        ...day,
+        name: action.name,
+        weekday: action.weekday,
+        isRestDay: action.isRestDay ?? day.isRestDay ?? false,
+        reflectionEnabled: action.isRestDay === false ? false : action.reflectionEnabled ?? day.reflectionEnabled ?? false,
+      };
       return updateState(state, data);
     }
     case "DELETE_PLAN_DAY": {
@@ -266,6 +290,7 @@ export function reducer(state: AppState, action: Action): AppState {
       const data = cloneData(state.data);
       const session: Session = { id: action.sessionId, date: action.date, weekday: weekdayFromISO(action.date), planId: action.planId, planDayId: action.planDayId, startedAt: action.now, note: "" };
       data.sessions[session.id] = session;
+      markReviewStale(data, session.date);
       for (const item of expandSessionPlan(data, session.id, action.planDayId)) data.sessionPlanItems[item.id] = item;
       const firstItem = expandSessionPlan(data, session.id, action.planDayId)[0];
       const firstIsTimed = firstItem ? firstItem.secondsMax !== undefined || data.exercises[firstItem.exerciseId]?.metric === "seconds" : false;
@@ -286,6 +311,8 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!item || !action.reason.trim()) return state;
       const skipped: SkippedBlock = { id: action.skippedBlockId, sessionId: action.sessionId, blockId: action.blockId, blockName: item.blockName, reason: action.reason.trim(), skippedAt: action.now };
       data.skippedBlocks[skipped.id] = skipped;
+      const session = data.sessions[action.sessionId];
+      if (session) markReviewStale(data, session.date);
       const next = Object.values(data.sessionPlanItems).filter((candidate) => candidate.sessionId === action.sessionId && candidate.blockOrder > item.blockOrder).sort((a, b) => a.blockOrder - b.blockOrder || a.exerciseOrder - b.exerciseOrder)[0];
       const nextExercise = next ? data.exercises[next.exerciseId] : undefined;
       const nextTimer = next && (next.secondsMax !== undefined || nextExercise?.metric === "seconds") ? timerForTimedItem(data, action.sessionId, next.planExerciseId, action.now, true) : { phase: "idle" as const };
@@ -306,6 +333,8 @@ export function reducer(state: AppState, action: Action): AppState {
         const secondsRaw = Math.max(0, (action.now - timer.startedAt) / 1000);
         const entry: SetEntry = { id: newId("set"), sessionId: timer.sessionId, planExerciseId: timer.planExerciseId, exerciseId: item.exerciseId, setNo, seconds: Math.floor(secondsRaw), secondsRaw, startedAt: timer.startedAt, endedAt: action.now, edited: false };
         data.setEntries[entry.id] = entry;
+        const session = data.sessions[timer.sessionId];
+        if (session) markReviewStale(data, session.date);
         return { ...updateState(state, data), ...stateAfterTimedEntry(data, timer.sessionId, timer.planExerciseId, action.now), clockNow: action.now };
       }
       if (state.guidedTimer.phase === "rest" && action.now >= state.guidedTimer.endsAt) {
@@ -325,6 +354,8 @@ export function reducer(state: AppState, action: Action): AppState {
       const entry: SetEntry = { id: newId("set"), sessionId: action.sessionId, planExerciseId: action.planExerciseId, exerciseId: item.exerciseId, setNo: Object.values(state.data.setEntries).filter((candidate) => candidate.sessionId === action.sessionId && candidate.planExerciseId === action.planExerciseId).length + 1, seconds: Math.floor(secondsRaw), secondsRaw, startedAt: state.guidedTimer.startedAt, endedAt: action.now, edited: false };
       const data = cloneData(state.data);
       data.setEntries[entry.id] = entry;
+      const session = data.sessions[action.sessionId];
+      if (session) markReviewStale(data, session.date);
       return { ...updateState(state, data), ...stateAfterTimedEntry(data, action.sessionId, action.planExerciseId, action.now), clockNow: action.now };
     }
     case "SKIP_REST": {
@@ -339,6 +370,8 @@ export function reducer(state: AppState, action: Action): AppState {
       const data = cloneData(state.data);
       const entry: SetEntry = { id: action.setId, sessionId: action.sessionId, planExerciseId: action.planExerciseId, exerciseId: action.exerciseId, setNo: action.setNo, reps: action.reps, startedAt: action.now, endedAt: action.now, edited: false };
       data.setEntries[entry.id] = entry;
+      const session = data.sessions[action.sessionId];
+      if (session) markReviewStale(data, session.date);
       const next = nextGuidedPlanExercise(data, action.sessionId, action.planExerciseId);
       const item = Object.values(data.sessionPlanItems).find((candidate) => candidate.sessionId === action.sessionId && candidate.planExerciseId === action.planExerciseId);
         return { ...updateState(state, data), guidedPlanExerciseId: action.planExerciseId, guidedTimer: restTimerForEntry(data, action.sessionId, action.planExerciseId, action.now, next), clockNow: action.now };
@@ -347,6 +380,8 @@ export function reducer(state: AppState, action: Action): AppState {
       const data = cloneData(state.data);
       const entry: SetEntry = { id: action.setId, sessionId: action.sessionId, planExerciseId: action.planExerciseId, exerciseId: action.exerciseId, setNo: action.setNo, skipReason: action.reason, startedAt: action.now, endedAt: action.now, edited: false };
       data.setEntries[entry.id] = entry;
+      const session = data.sessions[action.sessionId];
+      if (session) markReviewStale(data, session.date);
       const next = nextGuidedPlanExercise(data, action.sessionId, action.planExerciseId);
       return { ...updateState(state, data), guidedPlanExerciseId: next, guidedTimer: { phase: "idle" } };
     }

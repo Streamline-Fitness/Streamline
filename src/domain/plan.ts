@@ -107,3 +107,8 @@ export function shiftDate(date: string, days: number): string {
   shifted.setDate(shifted.getDate() + days);
   return shifted.toISOString().slice(0, 10);
 }
+
+export function weekStartForDate(date: string): string {
+  const weekday = weekdayFromISO(date);
+  return shiftDate(date, 1 - weekday);
+}

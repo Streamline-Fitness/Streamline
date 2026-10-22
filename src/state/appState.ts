@@ -2,7 +2,7 @@ import type { DataDocument, ID } from "../domain/model";
 import { createSeedData, makeDemoHistory } from "../domain/seed";
 import { getScheduledDayForDate, todayISO } from "../domain/plan";
 
-export type Route = "plans" | "plan-editor" | "today" | "summary" | "settings";
+export type Route = "plans" | "plan-editor" | "today" | "summary" | "settings" | "review";
 
 export type GuidedTimer =
   | { phase: "idle" }

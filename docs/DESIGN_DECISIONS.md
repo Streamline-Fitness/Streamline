@@ -469,7 +469,6 @@
 
 These remain open unless a later entry resolves them:
 
-- Monday or Tuesday as canonical week start
 - Planned versus actual rest duration in `restS`
 - Separate left/right stretch entries versus one double-length entry
 - Whether lead-in applies to rep exercises
@@ -542,3 +541,11 @@ These remain open unless a later entry resolves them:
 - **Decision:** Seconds-based exercises without a positive target duration use an open-ended stopwatch and finish only when the user presses Continue.
 - **Why:** Evaluation tests and holds such as Dead Hang have no prescribed time, so treating an absent target as zero ends them immediately and loses the user's actual result.
 - **Consequence:** Positive timed targets still auto-finish at their target. Untargeted exercises use the same set and rest progression after the user stops the stopwatch.
+
+## D-066 — Make weekly reflection optional on rest days
+
+- **Status:** Accepted
+- **Date:** 2026-10-21
+- **Decision:** Model rest days on plan days, with an independent option to enable the weekly reflection workflow. The seeded Sunday is a rest day with reflection enabled. Weekly reviews cover Monday through Sunday and are keyed by the Monday date.
+- **Why:** Reflection should fit naturally into a user's chosen rest day rather than require a special workout or a fixed Sunday-only feature.
+- **Consequence:** This resolves the open Monday-versus-Tuesday week-start question in favor of Monday. Rest-day workouts are hidden from Today without deleting their plan blocks. The review summarizes the week's recorded sessions and supports an editable reflection and next-week goal. Starting or changing a session in that week marks an already-saved review stale.

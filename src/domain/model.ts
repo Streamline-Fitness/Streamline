@@ -48,6 +48,8 @@ export type PlanDay = {
   weekday?: number;
   name: string;
   order: number;
+  isRestDay?: boolean;
+  reflectionEnabled?: boolean;
 };
 
 export type PlanBlock = {

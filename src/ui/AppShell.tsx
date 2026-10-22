@@ -17,7 +17,7 @@ export function AppShell({ state, dispatch, children }: Props) {
       </header>
       <nav className="primary-nav" aria-label="Primary navigation">
         <button className={state.route === "plans" || state.route === "plan-editor" ? "nav-button active" : "nav-button"} onClick={() => nav("plans")}>Plans</button>
-        <button className={state.route === "today" ? "nav-button active" : "nav-button"} onClick={() => nav("today")}>Today</button>
+        <button className={state.route === "today" || state.route === "review" ? "nav-button active" : "nav-button"} onClick={() => nav("today")}>Today</button>
         <button className={state.route === "settings" ? "nav-button active" : "nav-button"} onClick={() => nav("settings")}>Settings</button>
         <button className="nav-button muted" title="Restore the seeded example plan and demo history" aria-label="Reset demo data" onClick={() => dispatch({ type: "RESET_DEMO_DATA" })}>Reset demo</button>
       </nav>
