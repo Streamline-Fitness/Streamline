@@ -1,7 +1,7 @@
 import { expandSessionPlan, getScheduledDayForDate, todayISO, weekdayFromISO, weekStartForDate } from "../domain/plan";
 import { newId } from "../domain/ids";
 import { cloneData } from "../domain/seed";
-import { currentGuidedPlanExercise, latestFinishedSession, nextGuidedPlanExercise, nextPlanExerciseAfterEntry } from "../domain/session";
+import { currentGuidedPlanExercise, isSessionFinished, latestFinishedSession, nextGuidedPlanExercise, nextPlanExerciseAfterEntry } from "../domain/session";
 import type {
   ExerciseCategory,
   Exercise,
@@ -39,6 +39,8 @@ export type Action =
   | { type: "START_SESSION"; sessionId: ID; date: string; planId: ID; planDayId: ID; now: number }
   | { type: "START_GUIDED_EXERCISE"; sessionId: ID; planExerciseId: ID; now: number }
   | { type: "CLOCK_TICK"; now: number }
+  | { type: "PAUSE_GUIDED_EXERCISE"; now: number }
+  | { type: "RESUME_GUIDED_EXERCISE"; now: number }
   | { type: "CONTINUE_GUIDED_EXERCISE"; sessionId: ID; planExerciseId: ID; now: number }
   | { type: "SKIP_REST"; sessionId: ID; planExerciseId: ID; now: number }
   | { type: "UPDATE_SETTINGS"; defaultLeadInS: number }
@@ -114,11 +116,16 @@ export function reducer(state: AppState, action: Action): AppState {
         data.skippedBlocks ??= {};
         const activePlan = Object.values(data.plans).find((plan) => plan.isActive);
         const latestFinished = latestFinishedSession(data);
+        const activeSession = Object.values(data.sessions).find((session) => session.date === state.selectedDate && !isSessionFinished(session));
         return {
           ...state,
           data,
           selectedPlanId: activePlan?.id,
            selectedPlanDayId: activePlan ? getScheduledDayForDate(data, activePlan.id, state.selectedDate, state.selectedPlanDayId)?.id : undefined,
+          activeSessionId: activeSession?.id,
+          guidedPlanExerciseId: activeSession ? currentGuidedPlanExercise(data, activeSession.id) : undefined,
+          guidedTimer: { phase: "idle" },
+          clockNow: Date.now(),
           viewedSessionId: state.route === "summary" ? latestFinished?.id : state.viewedSessionId,
           lastFinishedSessionId: state.route === "summary" ? latestFinished?.id : state.lastFinishedSessionId,
           hydrated: true,
@@ -346,11 +353,46 @@ export function reducer(state: AppState, action: Action): AppState {
       }
       return { ...state, clockNow: action.now };
     }
+    case "PAUSE_GUIDED_EXERCISE": {
+      if (state.guidedTimer.phase !== "exercise") return state;
+      const timer = state.guidedTimer;
+      if (timer.targetSeconds > 0 && action.now >= timer.startedAt + timer.targetSeconds * 1000) {
+        return reducer(state, { type: "CLOCK_TICK", now: action.now });
+      }
+      return {
+        ...state,
+        guidedTimer: {
+          phase: "paused",
+          sessionId: timer.sessionId,
+          planExerciseId: timer.planExerciseId,
+          elapsedSeconds: Math.max(0, (action.now - timer.startedAt) / 1000),
+          targetSeconds: timer.targetSeconds,
+        },
+        clockNow: action.now,
+      };
+    }
+    case "RESUME_GUIDED_EXERCISE": {
+      if (state.guidedTimer.phase !== "paused") return state;
+      const timer = state.guidedTimer;
+      return {
+        ...state,
+        guidedTimer: {
+          phase: "exercise",
+          sessionId: timer.sessionId,
+          planExerciseId: timer.planExerciseId,
+          startedAt: action.now - timer.elapsedSeconds * 1000,
+          targetSeconds: timer.targetSeconds,
+        },
+        clockNow: action.now,
+      };
+    }
     case "CONTINUE_GUIDED_EXERCISE": {
       const item = Object.values(state.data.sessionPlanItems).find((candidate) => candidate.sessionId === action.sessionId && candidate.planExerciseId === action.planExerciseId);
-      if (!item || state.guidedTimer.phase !== "exercise") return state;
-      const secondsRaw = Math.max(0, (action.now - state.guidedTimer.startedAt) / 1000);
-      const entry: SetEntry = { id: newId("set"), sessionId: action.sessionId, planExerciseId: action.planExerciseId, exerciseId: item.exerciseId, setNo: Object.values(state.data.setEntries).filter((candidate) => candidate.sessionId === action.sessionId && candidate.planExerciseId === action.planExerciseId).length + 1, seconds: Math.floor(secondsRaw), secondsRaw, startedAt: state.guidedTimer.startedAt, endedAt: action.now, edited: false };
+      const timer = state.guidedTimer;
+      if (!item || (timer.phase !== "exercise" && timer.phase !== "paused")) return state;
+      const secondsRaw = timer.phase === "paused" ? timer.elapsedSeconds : Math.max(0, (action.now - timer.startedAt) / 1000);
+      const startedAt = action.now - secondsRaw * 1000;
+      const entry: SetEntry = { id: newId("set"), sessionId: action.sessionId, planExerciseId: action.planExerciseId, exerciseId: item.exerciseId, setNo: Object.values(state.data.setEntries).filter((candidate) => candidate.sessionId === action.sessionId && candidate.planExerciseId === action.planExerciseId).length + 1, seconds: Math.floor(secondsRaw), secondsRaw, startedAt, endedAt: action.now, edited: false };
       const data = cloneData(state.data);
       data.setEntries[entry.id] = entry;
       const session = data.sessions[action.sessionId];

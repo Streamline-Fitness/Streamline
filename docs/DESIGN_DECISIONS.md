@@ -597,3 +597,19 @@ These remain open unless a later entry resolves them:
 - **Decision:** Publish the static web prototype through GitHub Pages using a GitHub Actions workflow and the repository's `github.io` URL. Keep Supabase as the authentication and data backend.
 - **Why:** The user wants a hosted app without purchasing or configuring a custom domain.
 - **Consequence:** Build the Vite app with the repository path as its base URL and configure Supabase Auth redirects for the hosted path. Only the Supabase URL and publishable key are used at build time; never expose the service-role key. Treat the site as a public prototype, not a production service.
+
+## D-073 — Allow guided holds to pause and resume
+
+- **Status:** Accepted
+- **Date:** 2026-10-29
+- **Decision:** Show Pause beside Continue while a guided hold is running. Pause freezes elapsed hold time; Resume continues from that elapsed time, and Continue remains available to record the paused duration.
+- **Why:** Users need to temporarily stop a hold without losing the elapsed time or accidentally recording the hold.
+- **Consequence:** Paused time is excluded from logged hold duration and does not count toward automatic target completion.
+
+## D-074 — Restore guided progress when loading an active session
+
+- **Status:** Accepted
+- **Date:** 2026-10-29
+- **Decision:** When account data loads, restore the active session for the viewed date and select its next pending exercise. Do not restore an unrecorded timer; a timed exercise is ready to start again.
+- **Why:** Reloading should not leave an in-progress session without an active exercise or show an obsolete timed-entry placeholder.
+- **Consequence:** Logged entries remain intact. An unrecorded hold's elapsed time and any remaining rest/preparation countdown are not retained across a page reload.

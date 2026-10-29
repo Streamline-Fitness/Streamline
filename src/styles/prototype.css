@@ -252,7 +252,9 @@ textarea { min-height: 115px; resize: vertical; }
 .guided-timer-panel { margin-top: 14px; border-radius: 8px; background: #f0ece4; padding: 14px; text-align: center; }
 .timer-label { color: var(--muted); font-size: .72rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
 .timer-display { margin: 2px 0 10px; font-variant-numeric: tabular-nums; font-size: 2.55rem; letter-spacing: .04em; }
+.guided-timer-actions { display: flex; justify-content: center; gap: 8px; }
 .continue-button { min-width: 150px; }
+.pause-button { min-width: 96px; }
 .skip-rest-button { display: block; margin: 9px auto 0; font-size: .78rem; }
 .target-line, .previous-result { color: var(--muted); font-size: .79rem; }
 .target-line strong { color: var(--ink); }

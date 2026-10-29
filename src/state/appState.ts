@@ -8,6 +8,7 @@ export type GuidedTimer =
   | { phase: "idle" }
   | { phase: "preparation"; sessionId: ID; planExerciseId: ID; endsAt: number; targetSeconds: number }
   | { phase: "exercise"; sessionId: ID; planExerciseId: ID; startedAt: number; targetSeconds: number }
+  | { phase: "paused"; sessionId: ID; planExerciseId: ID; elapsedSeconds: number; targetSeconds: number }
   | { phase: "rest"; sessionId: ID; planExerciseId: ID; nextPlanExerciseId?: ID; startedAt: number; endsAt: number; durationSeconds: number };
 
 export type AppState = {

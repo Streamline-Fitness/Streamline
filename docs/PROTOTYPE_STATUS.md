@@ -44,6 +44,8 @@
 - Today training blocks now use closed accordions with individual expand/collapse controls.
 - Starting a session now enters guided mode: the current block opens, one exercise is highlighted, and logging/skip advances through the plan.
 - Timed guided exercises now show an on-screen timestamp-based timer; Continue records the hold, enters rest, and automatically advances when rest ends.
+- Guided hold timers can now be paused and resumed beside Continue without including paused time in the logged duration.
+- Reloading during an active session restores its next pending exercise and timer controls; unrecorded timer elapsed time and countdowns restart.
 - Fixed the initial Start hold action so idle timed exercises start their timestamp timer instead of attempting to continue an inactive timer.
 - Added block-level skipping with a required reason, persisted `SkippedBlock` records, and visible skipped-block state in Today.
 - The first hold in each block now uses that block's designated rest time as a visible preparation countdown before automatically starting.
@@ -104,6 +106,8 @@ Configure GitHub Pages, the two browser-safe Supabase Actions variables, and the
 
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-10-29 | Restored active guided exercise after page reload | `npm.cmd run build` and `git diff --check` pass |
+| 2026-10-29 | Added pause/resume controls to guided holds | `npm.cmd run build` and `git diff --check` pass |
 | 2026-10-29 | Prepared GitHub Pages deployment | `npm.cmd run build -- --base=/Streamline/` and `git diff --check` pass; generated assets use the repository path. Live Pages deployment and hosted Auth behavior remain pending |
 | 2026-10-29 | Completed seeded-week walkthrough | Browser walkthrough passed for weekday plan structure, timed and untargeted logging, progression rest, session note/duration, and weekly reflection persistence, staleness, and toggle behavior |
 | 2026-10-29 | Bundled supplied training history | `npm.cmd run build`, fixture date/value checks, and Vite SSR merge test passed; browser History walkthrough remains pending |

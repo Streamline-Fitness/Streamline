@@ -37,7 +37,7 @@ export function TodayScreen({ state, dispatch }: Props) {
     const current = state.guidedTimer.phase;
     if (previous !== current) {
       if ((previous === "idle" && current === "exercise") || (previous === "preparation" && current === "exercise")) playEventSound("holdStart");
-      if (previous === "exercise" && current !== "exercise") playEventSound("holdComplete");
+      if ((previous === "exercise" && current !== "exercise" && current !== "paused") || (previous === "paused" && current !== "exercise")) playEventSound("holdComplete");
       if (previous === "rest" && current !== "rest") playEventSound("restComplete");
       previousTimerPhase.current = current;
     }
@@ -167,9 +167,11 @@ function TodayExercise({ item, state, dispatch, activeSession, timer, priorDate 
   const isTimed = item.secondsMax !== undefined || state.data.exercises[item.exerciseId]?.metric === "seconds";
   const preparationRunning = isGuided && timer.phase === "preparation";
   const timerRunning = isGuided && timer.phase === "exercise";
+  const timerPaused = isGuided && timer.phase === "paused";
   const restBelongsToItem = isGuided && timer.phase === "rest" && timer.planExerciseId === item.planExerciseId;
-  const timerSeconds = preparationRunning ? Math.max(0, (timer.endsAt - state.clockNow) / 1000) : timerRunning ? Math.max(0, (state.clockNow - timer.startedAt) / 1000) : restBelongsToItem ? Math.max(0, (timer.endsAt - state.clockNow) / 1000) : 0;
+  const timerSeconds = preparationRunning ? Math.max(0, (timer.endsAt - state.clockNow) / 1000) : timerRunning ? Math.max(0, (state.clockNow - timer.startedAt) / 1000) : timerPaused ? timer.elapsedSeconds : restBelongsToItem ? Math.max(0, (timer.endsAt - state.clockNow) / 1000) : 0;
   const timerLabel = preparationRunning ? `Get ready ${Math.ceil(timerSeconds)}s` : restBelongsToItem ? `Rest ${Math.ceil(timerSeconds)}s` : `${Math.floor(timerSeconds / 60).toString().padStart(2, "0")}:${Math.floor(timerSeconds % 60).toString().padStart(2, "0")}`;
-  const onContinue = isGuided && isTimed && !preparationRunning && !restBelongsToItem ? () => timerRunning ? dispatch({ type: "CONTINUE_GUIDED_EXERCISE", sessionId: activeSession!.id, planExerciseId: item.planExerciseId, now: Date.now() }) : dispatch({ type: "START_GUIDED_EXERCISE", sessionId: activeSession!.id, planExerciseId: item.planExerciseId, now: Date.now() }) : undefined;
-  return <ExerciseCard item={item} entries={entries} previous={previousEntryForExercise(state.data, item.exerciseId, priorDate)} isGuided={isGuided} disabled={!activeSession || !isGuided || preparationRunning || (timer.phase === "rest" && !restBelongsToItem)} showTimer={isGuided && (isTimed || restBelongsToItem)} timerLabel={timerLabel} timerRunning={timerRunning} onContinue={onContinue} onSkipRest={restBelongsToItem && activeSession ? () => dispatch({ type: "SKIP_REST", sessionId: activeSession.id, planExerciseId: item.planExerciseId, now: Date.now() }) : undefined} onCommit={(reps) => { if (!activeSession) return; dispatch({ type: "COMMIT_REP_SET", setId: newId("set"), sessionId: activeSession.id, planExerciseId: item.planExerciseId, exerciseId: item.exerciseId, setNo: entries.length + 1, reps, now: Date.now() }); }} />;
+  const onContinue = isGuided && isTimed && !preparationRunning && !restBelongsToItem ? () => timerRunning || timerPaused ? dispatch({ type: "CONTINUE_GUIDED_EXERCISE", sessionId: activeSession!.id, planExerciseId: item.planExerciseId, now: Date.now() }) : dispatch({ type: "START_GUIDED_EXERCISE", sessionId: activeSession!.id, planExerciseId: item.planExerciseId, now: Date.now() }) : undefined;
+  const onPauseToggle = isGuided && activeSession && (timerRunning || timerPaused) ? () => dispatch({ type: timerPaused ? "RESUME_GUIDED_EXERCISE" : "PAUSE_GUIDED_EXERCISE", now: Date.now() }) : undefined;
+  return <ExerciseCard item={item} entries={entries} previous={previousEntryForExercise(state.data, item.exerciseId, priorDate)} isGuided={isGuided} disabled={!activeSession || !isGuided || preparationRunning || (timer.phase === "rest" && !restBelongsToItem)} showTimer={isGuided && (isTimed || restBelongsToItem)} timerLabel={timerLabel} timerRunning={timerRunning} timerPaused={timerPaused} onContinue={onContinue} onPauseToggle={onPauseToggle} onSkipRest={restBelongsToItem && activeSession ? () => dispatch({ type: "SKIP_REST", sessionId: activeSession.id, planExerciseId: item.planExerciseId, now: Date.now() }) : undefined} onCommit={(reps) => { if (!activeSession) return; dispatch({ type: "COMMIT_REP_SET", setId: newId("set"), sessionId: activeSession.id, planExerciseId: item.planExerciseId, exerciseId: item.exerciseId, setNo: entries.length + 1, reps, now: Date.now() }); }} />;
 }
