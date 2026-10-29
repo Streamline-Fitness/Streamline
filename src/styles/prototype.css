@@ -254,7 +254,7 @@ textarea { min-height: 115px; resize: vertical; }
 .timer-display { margin: 2px 0 10px; font-variant-numeric: tabular-nums; font-size: 2.55rem; letter-spacing: .04em; }
 .guided-timer-actions { display: flex; justify-content: center; gap: 8px; }
 .continue-button { min-width: 150px; }
-.pause-button { min-width: 96px; }
+.pause-button { min-width: 42px; padding-left: 12px; padding-right: 12px; }
 .skip-rest-button { display: block; margin: 9px auto 0; font-size: .78rem; }
 .target-line, .previous-result { color: var(--muted); font-size: .79rem; }
 .target-line strong { color: var(--ink); }
