@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { entriesForSession, sessionStatus } from "../domain/session";
+import { entriesForSession, isSessionFinished, sessionStatus } from "../domain/session";
 import { shiftDate, weekStartForDate } from "../domain/plan";
 import type { AppState } from "../state/appState";
 import type { Action } from "../state/reducer";
@@ -20,9 +20,9 @@ export function WeeklyReviewScreen({ state, dispatch, embedded = false }: Props)
     .filter((session) => session.date >= weekStart && session.date <= weekEnd)
     .sort((a, b) => a.date.localeCompare(b.date));
   const entries = weekSessions.flatMap((session) => entriesForSession(state.data, session.id));
-  const completedSessions = weekSessions.filter((session) => session.finishedAt && sessionStatus(state.data, session) === "done").length;
-  const partialSessions = weekSessions.filter((session) => session.finishedAt && sessionStatus(state.data, session) === "partial").length;
-  const skippedSessions = weekSessions.filter((session) => session.finishedAt && sessionStatus(state.data, session) === "skipped").length;
+  const completedSessions = weekSessions.filter((session) => isSessionFinished(session) && sessionStatus(state.data, session) === "done").length;
+  const partialSessions = weekSessions.filter((session) => isSessionFinished(session) && sessionStatus(state.data, session) === "partial").length;
+  const skippedSessions = weekSessions.filter((session) => isSessionFinished(session) && sessionStatus(state.data, session) === "skipped").length;
   const totalReps = entries.reduce((sum, entry) => sum + (entry.reps ?? 0), 0);
   const totalHoldSeconds = entries.reduce((sum, entry) => sum + (entry.seconds ?? 0), 0);
 
@@ -61,7 +61,7 @@ export function WeeklyReviewScreen({ state, dispatch, embedded = false }: Props)
         <p>{totalReps} reps · {totalHoldSeconds} seconds of holds logged</p>
         <ul className="review-session-list">{weekSessions.map((session) => <li key={session.id}>
           <span>{displayDate(session.date)}</span>
-          <strong>{session.finishedAt ? sessionStatus(state.data, session) : "In progress"}</strong>
+          <strong>{isSessionFinished(session) ? sessionStatus(state.data, session) : "In progress"}</strong>
           <span>{entriesForSession(state.data, session.id).length} entries</span>
         </li>)}</ul>
       </> : <p>No sessions were recorded for this week yet.</p>}

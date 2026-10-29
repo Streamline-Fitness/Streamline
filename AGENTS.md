@@ -2,7 +2,7 @@
 
 ## Repository goal
 
-This repository develops an **interactive browser prototype** of the Training Log app. It is being built in Windows/VS Code to validate workflow, interaction design, state, timing, and analytics before a native SwiftUI iOS implementation.
+This repository develops a **web-first interactive prototype** of the Training Log app. It is being built in Windows/VS Code to validate workflow, account access, durable data storage, interaction design, state, timing, and analytics before a native SwiftUI iOS implementation.
 
 This is not the production iOS app and is not intended to become a production web app.
 
@@ -28,15 +28,15 @@ Do not read every detailed document automatically. Use the task table in `docs/R
 - Use a reducer or similarly explicit action interface for state changes.
 - Inject current time into timer logic; never model elapsed time by counting interval ticks.
 - Use a fast-demo clock for long timers.
-- Use `localStorage` behind a repository adapter for browser persistence.
+- Use Supabase Auth and per-user Postgres row-level security for account-backed data; never treat browser storage as the source of truth.
 - Label the application visibly as a prototype.
 - Never silently discard, guess, or “clean up” user training data during import.
 
 ## Scope boundary
 
-Validate logging, holds, stretches, rest, editing, undo, session status, summaries, history, review staleness, analytics, import ambiguity, offline browser persistence, and export.
+Validate web sign-in, private account data, logging, holds, stretches, rest, editing, undo, session status, summaries, history, review staleness, analytics, safe history migration, and export.
 
-Do not implement real CloudKit/iCloud, Live Activities, WidgetKit, HealthKit, Siri/App Intents, native notifications/haptics, accounts, a backend, social features, coaching, or nutrition tracking. These are later native iOS concerns.
+Do not implement real CloudKit/iCloud, Live Activities, WidgetKit, HealthKit, Siri/App Intents, native notifications/haptics, social features, coaching, or nutrition tracking. These are later native iOS concerns.
 
 ## Working rules
 

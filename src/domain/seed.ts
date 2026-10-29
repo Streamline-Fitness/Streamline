@@ -8,8 +8,6 @@ import type {
   PlanDay,
   PlanExercise,
   SideMode,
-  Session,
-  SetEntry,
 } from "./model";
 
 const now = Date.UTC(2026, 9, 21, 12);
@@ -205,35 +203,4 @@ export function createSeedData(): DataDocument {
 
 export function cloneData(data: DataDocument): DataDocument {
   return structuredClone(data);
-}
-
-export function makeDemoHistory(data: DataDocument): DataDocument {
-  const history = cloneData(data);
-  const demoSession: Session = {
-    id: "session_demo_previous",
-    date: "2026-10-16",
-    weekday: 5,
-    planId: demoPlan.id,
-    planDayId: "day_demo_friday",
-    startedAt: now - 60 * 60 * 1000,
-    finishedAt: now - 30 * 60 * 1000,
-    finishMode: "manual",
-    note: "Example history so previous results have something to show.",
-  };
-  history.sessions[demoSession.id] = demoSession;
-  const fridayBlockIds = new Set(blocks.filter((block) => block.dayId === "day_demo_friday").map((block) => block.id));
-  for (const item of planExercises.filter((candidate) => fridayBlockIds.has(candidate.blockId) && history.exercises[candidate.exerciseId].category !== "stretch")) {
-    const exercise = history.exercises[item.exerciseId];
-    const set: SetEntry = {
-      id: `set_demo_previous_${item.id}`,
-      sessionId: demoSession.id,
-      planExerciseId: item.id,
-      exerciseId: item.exerciseId,
-      setNo: 1,
-      edited: false,
-      ...(exercise.metric === "reps" ? { reps: item.repsMin ?? 8 } : { seconds: item.secondsMin ?? 30, secondsRaw: item.secondsMin ?? 30 }),
-    };
-    history.setEntries[set.id] = set;
-  }
-  return history;
 }

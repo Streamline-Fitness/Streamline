@@ -1,10 +1,10 @@
 # Training Log Prototype
 
-> **PROTOTYPE — not the production iOS app.**
+> **PROTOTYPE — web-first validation, not the production iOS app.**
 
-Training Log is an interactive browser prototype for exploring the workflow and data model of a future native SwiftUI training app. It is designed to answer product questions early: can someone create their own routine, log a planned day quickly, understand what happened, and preserve enough structured information for future progression, history, reviews, and analytics?
+Training Log is a web-first prototype for exploring the workflow, account access, and durable data model of a future Training Log app. It uses Supabase Auth for email/password sign-in and stores each signed-in user's versioned training document in Postgres protected by row-level security.
 
-The browser version intentionally focuses on product behavior rather than production infrastructure. It uses React, TypeScript, Vite, plain CSS, and browser `localStorage`. It does **not** connect to iCloud, CloudKit, a backend, HealthKit, accounts, or any native iOS services.
+The web prototype uses React, TypeScript, Vite, plain CSS, and Supabase. It is not the production iOS app and does not connect to iCloud, HealthKit, or other native iOS services.
 
 ## Contents
 
@@ -22,7 +22,7 @@ The browser version intentionally focuses on product behavior rather than produc
 
 ## What is implemented
 
-The current implementation is the first vertical slice: plan authoring plus the first complete logging flow.
+The current implementation includes plan authoring, guided session logging, weekly reflection, history browsing, email/password sign-in, password recovery, and per-account cloud persistence. The supplied training log is migrated only into the designated account, never automatically copied to every new user.
 
 ### Plans and exercises
 
@@ -75,11 +75,21 @@ The current implementation is the first vertical slice: plan authoring plus the 
 - Summary fields can be edited after the session is finished.
 - The session's original plan targets remain unchanged if the plan is edited later.
 
-### Settings and demo data
+### History
+
+- History lists saved sessions and opens their editable summaries.
+- The supplied 11-week log is normalized into historical sessions, set entries, and weekly reflections.
+- Historical records are added to the designated account with a one-time private migration that merges rather than overwrites.
+- Original session excerpts remain available in the session summary; unclear results are not guessed.
+- Historical sessions retain the date and recorded duration without fabricating a start time.
+
+### Settings and account data
 
 - The default timed-hold lead-in can be changed in Settings.
-- **Reset demo** restores the seeded example plan and demo data.
-- Data is persisted locally in the current browser through a versioned `localStorage` document.
+- Users can sign in with a password, create accounts, and request a password-recovery email.
+- Settings, password management, and sign-out are available from the top-corner initials avatar.
+- Training data is stored in a versioned Postgres JSON document owned by the signed-in Supabase user.
+- Row-level security protects reads; a version-checked database function prevents concurrent sessions from silently overwriting one another.
 
 ## Quick start
 
@@ -88,6 +98,7 @@ The current implementation is the first vertical slice: plan authoring plus the 
 - Node.js with npm
 - A modern browser
 - Windows, macOS, or Linux
+- A Supabase project
 
 Check that Node and npm are available:
 
@@ -104,6 +115,13 @@ From the project directory:
 npm install
 ```
 
+### Configure Supabase
+
+1. Create a Supabase project and enable the Email provider in **Authentication → Providers**.
+2. In the Supabase SQL Editor, run [`supabase/migrations/20261029103000_user_training_documents.sql`](supabase/migrations/20261029103000_user_training_documents.sql).
+3. In **Authentication → URL Configuration**, set the local site URL to `http://localhost:5173` and allow that redirect URL.
+4. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the project API settings. The publishable/anon key is intended for browser use; never put a service-role key in a `VITE_` variable.
+
 ### Start the development server
 
 ```bash
@@ -117,6 +135,35 @@ http://localhost:5173/
 ```
 
 Open that URL in a browser. The interface is designed for a narrow phone-sized viewport, but it can also be explored in a desktop browser.
+Sign in using your email and password. Choose **Create an account** if you have not registered. If you have an existing passwordless account, use **Forgot password?** and open the recovery link in the same browser; after it returns to the app, set a password from the top-corner initials avatar menu. If the recovery email limit is exhausted, use the local password setup command below instead. Open **Settings** from the same avatar menu.
+
+### Add the supplied history to your account
+
+After you have signed in once, add your account email and the Supabase service-role key to the ignored local `.env.local` file as `TRAINING_LOG_TARGET_EMAIL` and `SUPABASE_SERVICE_ROLE_KEY`. The service-role key is only used by the local one-time script; never share it or deploy it to the browser. The personal source fixture stays at the ignored `private/legacyHistory.json` path and is not included in Git. From the original workspace that contains this file, run:
+
+```bash
+npm run import:legacy-history
+```
+
+The script targets only the configured email, preserves any existing training document, and is safe to rerun. The history has already been migrated to the designated account; the ignored source file is retained locally, not pushed. Remove the service-role key from `.env.local` after the import.
+
+### Set a password without sending another email (Windows)
+
+If Supabase's built-in email quota is exhausted, you can set a password on your existing account locally with the admin key. Put `SUPABASE_SERVICE_ROLE_KEY` back in `.env.local` temporarily if you removed it. In PowerShell, from the repository root, run:
+
+```powershell
+$securePassword = Read-Host "New password (minimum 8 characters)" -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+  $env:TRAINING_LOG_NEW_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer)
+  npm.cmd run set:account-password
+} finally {
+  Remove-Item Env:TRAINING_LOG_NEW_PASSWORD -ErrorAction SilentlyContinue
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer)
+}
+```
+
+The command updates only the existing user matching `TRAINING_LOG_TARGET_EMAIL`; it does not send an email or create an account. The password is not saved in a file or printed. Remove `SUPABASE_SERVICE_ROLE_KEY` from `.env.local` when the command succeeds. Then choose **Password** in the app and sign in with that email and password.
 
 ### Create a production build locally
 
@@ -154,22 +201,8 @@ The quickest way to explore the current slice is:
 14. Edit the note or sleep field in the completed summary.
 15. Refresh the browser and confirm that the plan and completed session remain.
 16. Edit the plan, then inspect the completed session again. Its historical plan snapshot should remain unchanged.
-
-### Resetting the local demo
-
-Click **Reset demo** in the top navigation to restore the seeded plan and demonstration history. This also clears the current selected date and active-session view.
-
-Resetting is destructive for the prototype's current browser data. Export or copy anything you want to keep before using it once export support is implemented in a later slice.
-
-### Browser storage
-
-The app stores data under the browser local-storage key:
-
-```text
-training-log-prototype.v1
-```
-
-This data is local to the browser profile and device. It is not synchronized between browsers, users, or computers. Clearing site data, using a private browsing session, or switching browsers can remove or hide the stored prototype data.
+17. Open History, inspect a saved session, and return to its editable summary.
+18. Open one of the bundled historical sessions, inspect its values and original excerpt, and confirm it remains after refresh.
 
 ## How data works
 
@@ -184,7 +217,12 @@ The prototype keeps structured records rather than storing a screen-shaped form.
 - `SessionPlanItem` — the immutable plan expansion captured when a session starts
 - `SetEntry` — a completed, edited, or skipped exercise entry
 - `SkippedBlock` — a skipped block and its reason
+- `WeeklyReview` — a saved weekly reflection and next-week goal
 - `Settings` — prototype timing settings
+
+The supplied historical log is normalized into `Session`, `SessionPlanItem`, `SetEntry`, and `WeeklyReview` records. A one-time local admin script merges those records into the designated account's existing `DataDocument`; normal sign-up never seeds the supplied personal log. Historical sessions keep date and duration without fabricated start timestamps; unresolved source values remain in each session's original excerpt.
+
+Each account currently stores one JSONB `DataDocument` row. This preserves the app's existing typed state model while moving the source of truth to Postgres. Writes include an expected version, so another browser/device cannot silently overwrite a newer copy. This prototype does not yet support offline edits or automatic conflict merging.
 
 ### Why sessions use snapshots
 
@@ -237,9 +275,12 @@ training-log-prototype/
    │  ├─ appState.ts
    │  └─ reducer.ts
    ├─ storage/
-   │  ├─ repository.ts
-   │  └─ localStorage.ts
+   │  ├─ database.types.ts
+   │  ├─ document.ts
+   │  ├─ supabaseClient.ts
+   │  └─ supabaseRepository.ts
    ├─ screens/
+   │  ├─ AuthScreen.tsx
    │  ├─ TodayScreen.tsx
    │  ├─ PlansScreen.tsx
    │  ├─ PlanEditorScreen.tsx
@@ -247,6 +288,7 @@ training-log-prototype/
    │  └─ SettingsScreen.tsx
    ├─ ui/
    │  ├─ AppShell.tsx
+   │  ├─ AccountSecurity.tsx
    │  ├─ ExerciseCard.tsx
    │  ├─ PrototypeNotice.tsx
    │  └─ sounds.ts
@@ -258,7 +300,7 @@ The source is organized by responsibility:
 
 - **`domain/`** contains data types, seed data, selectors, and pure training rules.
 - **`state/`** contains application state and explicit reducer actions.
-- **`storage/`** contains the persistence interface and browser adapter.
+- **`storage/`** contains the Supabase client, persisted-document validation, and account repository.
 - **`screens/`** contains route-level screen compositions.
 - **`ui/`** contains reusable visual components.
 - **`styles/`** contains the plain CSS for the prototype.
@@ -274,7 +316,8 @@ The domain and state seams are the most valuable parts to carry forward conceptu
 | Build tool | Vite | Small, fast browser prototype setup |
 | Styling | Plain CSS | Keeps visual changes easy while the interface is unsettled |
 | State | Explicit reducer actions | Makes session transitions and timer behavior inspectable |
-| Persistence | Versioned `localStorage` adapter | Validates offline browser persistence without pretending to be CloudKit |
+| Authentication | Supabase Auth email codes and passwords | Supports in-viewer sign-in without opening an email link; Supabase handles credentials |
+| Persistence | Versioned Postgres JSONB document with row-level security | Provides durable account-owned data and detects concurrent writes |
 | Navigation | Small hash-based routes | Avoids adding a router dependency to a prototype |
 | Timers | Injected timestamps | Avoids counting interval ticks as elapsed time |
 
@@ -291,19 +334,18 @@ The broader prototype is intended to validate:
 - Editing and undo
 - Session status and summaries
 - History
-- Import ambiguity reporting
+- Preservation of ambiguous values in supplied historical data
 - Sunday review and stale review behavior
 - PRs and analytics
 - JSON and CSV export
-- Offline browser persistence
+- Account sign-in and private cross-device data
+- Safe, account-specific migration of supplied history
 
 ### Not in scope
 
-The browser prototype will not implement production versions of:
+The web prototype does not implement production versions of:
 
 - CloudKit or iCloud synchronization
-- User accounts or login
-- A backend or server database
 - Live Activities or lock-screen updates
 - WidgetKit
 - HealthKit
@@ -319,7 +361,7 @@ These are later native iOS concerns. A browser sound cue may simulate a timer mi
 
 ### Current status
 
-The current implementation is **Slice 1 — plan authoring and the first logging flow**. It is runnable and includes the plan editor, Today logging, guided rep/timed behavior, summaries, and local persistence.
+The current implementation has completed the plan, logging, reflection, and history slices. Supabase email magic-link auth and private cloud-document persistence are wired; a project must be configured and the migration applied before the web app can be used.
 
 ### Planned slices
 
@@ -329,12 +371,12 @@ The current implementation is **Slice 1 — plan authoring and the first logging
    - Hold details, form flags, defaults, editing, undo, and rest behavior.
 3. **Slice 3 — Guided stretches**
    - Ordered stretch sequences, transitions, ratings, skips, and auto-finish.
-4. **Slice 4 — History and import**
-   - Prior-session editing and ambiguity-reporting text import.
+4. **Slice 4 — History and legacy data**
+   - History browsing and the supplied log normalized into the designated account's history.
 5. **Slice 5 — Review and analytics**
    - Sunday review, stale behavior, PRs, and chart-ready selectors.
 6. **Slice 6 — Export and prototype cleanup**
-   - JSON/CSV export, reset/demo controls, and prototype notes.
+   - JSON/CSV export and prototype notes.
 
 See [`docs/PROTOTYPE_STATUS.md`](docs/PROTOTYPE_STATUS.md) for the living implementation status and recommended next step.
 
@@ -365,8 +407,8 @@ Read the smallest relevant amount of project context:
 - Use explicit reducer actions for state transitions.
 - Inject current time into timer transitions.
 - Do not model elapsed time by counting interval callbacks.
-- Keep browser persistence behind the repository adapter.
-- Preserve user data during imports; never silently guess or discard ambiguous input.
+- Keep account persistence behind the Supabase repository; do not use browser storage as the source of truth.
+- Preserve supplied historical data; never silently guess or discard ambiguous values.
 - Keep the app visibly labelled as a prototype.
 - Prefer a complete workflow that answers a product question over isolated visual polish.
 
@@ -414,11 +456,11 @@ Then check the browser developer console for errors. Also confirm that dependenc
 
 ### Changes do not appear
 
-Refresh the browser. If the issue appears related to persisted state, use **Reset demo**. This resets the prototype's local data for the current browser.
+Refresh the browser. If account data does not load, verify the Supabase project URL/key, SQL migration, email provider, and redirect URL. Loading and saving failures are shown in the interface rather than replaced with local-only data.
 
 ### Old data is interfering with testing
 
-Use **Reset demo** first. If necessary, clear site data for the local Vite address through the browser's developer tools. This removes the `training-log-prototype.v1` local-storage record.
+Verify that the current signed-in account is the expected one. Training data is stored remotely in that account, not in browser cache; there is no reset button that deletes account data.
 
 ### Audio cues do not play
 

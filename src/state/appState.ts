@@ -1,8 +1,8 @@
 import type { DataDocument, ID } from "../domain/model";
-import { createSeedData, makeDemoHistory } from "../domain/seed";
+import { createSeedData } from "../domain/seed";
 import { getScheduledDayForDate, todayISO } from "../domain/plan";
 
-export type Route = "plans" | "plan-editor" | "today" | "summary" | "settings" | "review";
+export type Route = "plans" | "plan-editor" | "today" | "summary" | "settings" | "review" | "history";
 
 export type GuidedTimer =
   | { phase: "idle" }
@@ -28,7 +28,7 @@ export type AppState = {
 };
 
 export function createInitialState(data?: DataDocument): AppState {
-  const seeded = data ?? makeDemoHistory(createSeedData());
+  const seeded = data ?? createSeedData();
   const activePlan = Object.values(seeded.plans).find((plan) => plan.isActive);
   const selectedDate = todayISO();
   return {

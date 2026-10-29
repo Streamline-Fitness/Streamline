@@ -5,10 +5,10 @@
 ## Current state
 
 - **Overall phase:** Implementation
-- **Current slice:** Seeded weekly training template and optional rest-day reflection
-- **Next implementation slice:** Hands-on walkthrough of the seeded week
-- **Prototype runnable:** Yes — run `npm install` then `npm run dev`
-- **Last updated:** 2026-10-21
+- **Current slice:** Web accounts and cloud persistence
+- **Next implementation slice:** Configure the Supabase email templates for numeric codes, verify both sign-in methods and account persistence in the browser, then continue with PRs and richer analytics
+- **Prototype runnable:** Yes — configure Supabase as described in `README.md`, then run `npm install` and `npm run dev`
+- **Last updated:** 2026-10-29
 
 ## Completed
 
@@ -79,34 +79,39 @@
 - Preserved explicit Today selection when an active plan has multiple training days on the same weekday, and made the completed summary recover from persisted finished sessions when transient summary identity is stale or missing.
 - Clarified Today plan-day selection: the app auto-uses the only workout scheduled for a weekday, and shows a clearly labelled selector only when multiple workouts share that weekday; it remains hidden during active sessions and completed summaries.
 - Decided that native-only integrations such as iCloud, Live Activities, WidgetKit, HealthKit, native notifications, and App Intents are outside the browser prototype's validation scope.
+- Completed the hands-on walkthrough of the seeded training week, including plan structure, timed and untargeted logging, progression rest, session summary, and weekly reflection behavior.
 
 ## In progress
 
-- The seeded week and Sunday reflection workflow build successfully. The next work is to walk through weekday ordering, set/rest behavior, untargeted hold logging, and saving/revisiting a weekly reflection in the browser.
-- Browser smoke verification confirmed the seeded Sunday rest day, reflection toggle, review save across reload, and stale marking after starting a session in the reviewed week. On reflection-enabled rest days, Today renders the weekly reflection and editable form directly; the extra rest-day card and open button are gone. Browser verification confirmed the reflection is visible on Sunday with no rest-day intro. The full seeded-week walkthrough remains pending.
+- History browsing is implemented. The supplied log is retained as a private migration source (46 sessions, 417 movements, 440 set values, and 4 reflections) and is no longer automatically included in new accounts.
+- Supabase account-scoped document loading/saving, optimistic version checks, and row-level-security migration are implemented. The app deliberately does not fall back to local-only persistence.
+- Email/password sign-in and sign-up plus standard email-link password recovery are implemented. Password is the default and only sign-in method; recovery links need to open in the app browser.
+- Account settings are accessed from a top-corner initials avatar. Password management and sign-out are grouped in its menu; Settings is reachable there as well.
+- The Supabase schema migration is applied, the private history migration has completed for the designated account (46 sessions), and the user confirmed password login is working. Cross-account row-level-security isolation and concurrent-session behavior remain unverified.
+- The personal source fixture is retained locally under `private/legacyHistory.json` and ignored by Git; migration-only code lives under `scripts/`, outside the browser app's TypeScript build.
 
 ## Not yet implemented
 
-- History, import, PRs, richer analytics, and export
+- PRs, richer analytics, and export
 
 ## Recommended next step
 
-Verify the seeded weekly template in the browser:
-
-1. Use Reset demo to load the new seed; existing browser storage is intentionally not overwritten.
-2. Check active stretches remain separate on Monday/Wednesday/Friday, the requested exercise pairs are supersets, and Tuesday/Thursday/Saturday each have one Passive Stretches block.
-3. Confirm each 60-second active stretch advances after Continue despite the block's 0-second rest; log a Dead Hang or Saturday progression test and confirm the stopwatch records seconds without a target range.
-4. Check progression rest behavior, especially the 2-3 minute between-exercise note on Tuesday and Thursday.
-5. Finish a session, add a session note, and confirm the duration is calculated from session timestamps.
-6. Confirm Sunday shows the weekly reflection directly, save both fields, and verify later changes to that week's sessions mark the review stale.
-7. In Plans, disable reflection on the Sunday rest day and confirm the reflection action no longer appears; re-enable it and verify the review is still available.
-
-Do not begin analytics or visual polish until this complete path is usable.
+Sign in with the designated account, verify its document survives refresh, and confirm the 46 migrated sessions appear in History. If possible, test that a second account cannot read the first account's document. Walk through a regular workout, the partially parsed October 27 progressions, a note-only session, and a weekly reflection. The trailing Wednesday heading has no workout details and remains in the Tuesday source excerpt rather than becoming a fabricated session. Then implement PRs and richer analytics. Keep export before prototype cleanup.
 
 ## Verification history
 
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-10-29 | Completed seeded-week walkthrough | Browser walkthrough passed for weekday plan structure, timed and untargeted logging, progression rest, session note/duration, and weekly reflection persistence, staleness, and toggle behavior |
+| 2026-10-29 | Bundled supplied training history | `npm.cmd run build`, fixture date/value checks, and Vite SSR merge test passed; browser History walkthrough remains pending |
+| 2026-10-29 | Added Supabase web accounts and cloud document storage | `npm.cmd run build`, account-bootstrap/private-history migration checks, document validation, and `git diff --check` pass. Live auth/RLS/cloud persistence were unverified at implementation time |
+| 2026-10-29 | Migrated supplied history into designated Supabase account | `npm.cmd run import:legacy-history` succeeded and added 46 sessions; `.env.local` values were not displayed. Browser visibility and cross-account isolation remain to be verified |
+| 2026-10-29 | Added email-code and password sign-in | Verified the prior email-code/password screen; superseded by password-only sign-in in D-071 |
+| 2026-10-29 | Simplified auth to password sign-in and email recovery | `npm.cmd run build`, server-rendered password-first/recovery UI assertions, and `git diff --check` pass; recovery links must be opened in the app browser |
+| 2026-10-29 | Excluded personal history fixture from Git | Verified `private/legacyHistory.json` and `.env.local` are Git-ignored; fixture remains local for the already-completed migration |
+| 2026-10-29 | Verified password login with the user | User confirmed sign-in works in the browser |
+| 2026-10-29 | Added local password setup for email-rate-limit recovery | `npm.cmd run build`, script safety guards, and `git diff --check` pass; command uses a hidden PowerShell prompt and only updates an existing configured account |
+| 2026-10-29 | Moved account actions into initials-avatar menu | `npm.cmd run build` and `git diff --check` pass; browser confirmed initials avatar opens Settings/password/sign-out menu and Settings navigation works from History |
 | 2026-10-21 | Made untargeted hold timers manual-stop | `npm run build` passes; browser walkthrough pending |
 | 2026-10-21 | Added optional weekly reflection on rest days | `npm run build` passes; browser verified seed, toggle visibility, persistence after reload, and stale state after a same-week session start |
 | 2026-10-21 | Made reflection the rest-day content | `npm run build` passes; browser confirmed Sunday renders the reflection form directly without the rest-day intro or a separate open button |

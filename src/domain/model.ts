@@ -129,6 +129,10 @@ export type Session = {
   skipReason?: string;
   sleepHours?: number;
   importKey?: string;
+  isHistorical?: boolean;
+  durationSeconds?: number;
+  sourceText?: string;
+  hasUnresolvedHistory?: boolean;
 };
 
 export type SetEntry = {

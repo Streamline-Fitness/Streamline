@@ -9,6 +9,9 @@ dist/
 .env.*
 !.env.example
 
+# Private source data; never commit personal training history
+/private/legacyHistory.json
+
 # Local editor and operating-system files
 .DS_Store
 Thumbs.db

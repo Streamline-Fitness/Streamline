@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { newId } from "../domain/ids";
-import { entriesForPlanExercise, entriesForSession, itemsForSession, latestFinishedSession, previousEntryForExercise, sessionDurationMinutes } from "../domain/session";
+import { entriesForPlanExercise, entriesForSession, isSessionFinished, itemsForSession, latestFinishedSession, previousEntryForExercise, sessionDurationMinutes } from "../domain/session";
 import { getActivePlan, getPlanDays, getScheduledDayForDate, shiftDate, todayISO, weekdayFromISO } from "../domain/plan";
 import type { SessionPlanItem } from "../domain/model";
 import type { AppState } from "../state/appState";
@@ -53,9 +53,9 @@ export function TodayScreen({ state, dispatch }: Props) {
   const selectedDay = selectedDayId ? state.data.planDays[selectedDayId] : undefined;
   const activeSession = state.activeSessionId
     ? state.data.sessions[state.activeSessionId]
-    : Object.values(state.data.sessions).find((session) => session.date === state.selectedDate && !session.finishedAt);
+    : Object.values(state.data.sessions).find((session) => session.date === state.selectedDate && !isSessionFinished(session));
   const viewedSession = state.viewedSessionId ? state.data.sessions[state.viewedSessionId] : undefined;
-  const completedSession = viewedSession?.date === state.selectedDate && viewedSession.finishedAt
+  const completedSession = viewedSession?.date === state.selectedDate && isSessionFinished(viewedSession)
     ? viewedSession
     : latestFinishedSession(state.data, state.selectedDate);
   const sessionItems = activeSession ? itemsForSession(state.data, activeSession.id) : [];

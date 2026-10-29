@@ -1,6 +1,6 @@
 import { expandSessionPlan, getScheduledDayForDate, todayISO, weekdayFromISO, weekStartForDate } from "../domain/plan";
 import { newId } from "../domain/ids";
-import { cloneData, createSeedData, makeDemoHistory } from "../domain/seed";
+import { cloneData } from "../domain/seed";
 import { currentGuidedPlanExercise, latestFinishedSession, nextGuidedPlanExercise, nextPlanExerciseAfterEntry } from "../domain/session";
 import type {
   ExerciseCategory,
@@ -50,8 +50,7 @@ export type Action =
   | { type: "VIEW_SESSION"; sessionId: ID }
   | { type: "DISMISS_SESSION_SUMMARY" }
   | { type: "UPDATE_SESSION_NOTE"; sessionId: ID; note: string }
-  | { type: "UPDATE_SLEEP_HOURS"; sessionId: ID; sleepHours?: number }
-  | { type: "RESET_DEMO_DATA" };
+  | { type: "UPDATE_SLEEP_HOURS"; sessionId: ID; sleepHours?: number };
 
 function updateState(state: AppState, data: AppState["data"]): AppState {
   return { ...state, data, error: undefined };
@@ -110,7 +109,7 @@ export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "HYDRATE":
       {
-        const data = cloneData(action.data);
+        const data = action.data;
         for (const exercise of Object.values(data.exercises)) exercise.sideMode ??= "none";
         data.skippedBlocks ??= {};
         const activePlan = Object.values(data.plans).find((plan) => plan.isActive);
@@ -279,7 +278,7 @@ export function reducer(state: AppState, action: Action): AppState {
       return updateState(state, data);
     }
     case "START_SESSION": {
-      const existing = Object.values(state.data.sessions).find((session) => session.date === action.date && !session.finishedAt);
+      const existing = Object.values(state.data.sessions).find((session) => session.date === action.date && !session.finishedAt && !session.isHistorical);
       if (existing) {
         const current = currentGuidedPlanExercise(state.data, existing.id);
         const currentItem = current ? Object.values(state.data.sessionPlanItems).find((item) => item.sessionId === existing.id && item.planExerciseId === current) : undefined;
@@ -395,12 +394,6 @@ export function reducer(state: AppState, action: Action): AppState {
       return withSession(state, action.sessionId, (session) => ({ ...session, note: action.note }));
     case "UPDATE_SLEEP_HOURS":
       return withSession(state, action.sessionId, (session) => ({ ...session, sleepHours: action.sleepHours }));
-    case "RESET_DEMO_DATA": {
-      const data = makeDemoHistory(createSeedData());
-      const activePlan = Object.values(data.plans).find((plan) => plan.isActive);
-      const selectedDate = todayISO();
-      return { ...state, data, route: "today", selectedDate, selectedPlanId: activePlan?.id, editorPlanId: activePlan?.id, selectedPlanDayId: activePlan ? getScheduledDayForDate(data, activePlan.id, selectedDate)?.id : undefined, activeSessionId: undefined, guidedPlanExerciseId: undefined, guidedTimer: { phase: "idle" }, clockNow: Date.now(), lastFinishedSessionId: undefined, viewedSessionId: undefined, error: undefined };
-    }
   }
 }
 

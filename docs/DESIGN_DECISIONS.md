@@ -16,13 +16,13 @@
 - **Why:** The MVP behavior—logging, timers, edits, reviews, import, analytics, and offline use—can be exercised without native Apple integrations. This lets product and state-model decisions be tested on Windows in VS Code.
 - **Consequence:** The prototype validates behavior and interaction, not iOS platform integration. It must be clearly labelled as a prototype and remain easy to replace.
 
-## D-002 — The prototype is not a production web app
+## D-002 — The prototype is not a production web app (superseded)
 
-- **Status:** Accepted
+- **Status:** Superseded by D-068
 - **Date:** 2026-10-21
 - **Decision:** Do not add accounts, a backend, deployment infrastructure, social features, or production web concerns.
 - **Why:** The eventual product is a native, offline-first iOS app. The browser exists to answer product questions before native implementation.
-- **Consequence:** Use local browser persistence and seeded data. Keep modules small and disposable.
+- **Consequence:** This decision excluded web accounts and backend storage; D-068 expands the prototype to validate those concerns.
 
 ## D-003 — Use React, TypeScript, Vite, and plain CSS
 
@@ -56,13 +56,13 @@
 - **Why:** Browser intervals can be delayed or throttled. Timestamp arithmetic reflects actual elapsed time and matches the source requirement.
 - **Consequence:** A fast-demo clock can accelerate the prototype without changing timer behavior. The interval only redraws the UI.
 
-## D-007 — Use localStorage behind a repository adapter
+## D-007 — Use localStorage behind a repository adapter (superseded)
 
-- **Status:** Accepted
+- **Status:** Superseded by D-068
 - **Date:** 2026-10-21
 - **Decision:** Persist the versioned prototype document through a repository interface backed by `localStorage`.
 - **Why:** Offline browser persistence is part of the workflow to validate, while CloudKit is explicitly outside the browser prototype.
-- **Consequence:** Refresh/restart persistence can be tested. The adapter must be replaceable by SwiftData/CloudKit later; no browser storage details should leak into domain logic.
+- **Consequence:** This local-only persistence approach is replaced by account-backed Supabase storage in D-068.
 
 ## D-008 — Add a fast-demo clock
 
@@ -80,13 +80,13 @@
 - **Why:** These are platform mechanisms, while the current product questions concern workflow, timing, state, and analytics.
 - **Consequence:** The prototype may use visual or browser cues where useful, but those cues are not evidence that the native integration is solved.
 
-## D-010 — Preserve ambiguous imports for review
+## D-010 — Preserve ambiguous imports for review (superseded)
 
-- **Status:** Accepted
+- **Status:** Superseded by D-067
 - **Date:** 2026-10-21
 - **Decision:** Imported text that cannot be parsed confidently is shown as unresolved and is never silently guessed or discarded.
 - **Why:** Training history is user data, and incorrect historical records would contaminate PRs and analytics.
-- **Consequence:** Import confirmation must distinguish accepted records, duplicates, and ambiguous lines.
+- **Consequence:** This decision described a user-facing import flow, which is not part of the prototype after D-067.
 
 ## D-011 — Represent skipped stretch reasons on SetEntry temporarily
 
@@ -478,6 +478,38 @@ These remain open unless a later entry resolves them:
 - Whether skipped-stretch reasons belong on `SetEntry` or a dedicated record
 - Skill as a table versus a fixed identifier set
 
+## D-067 — Bundle the supplied log as history, not an app import flow (superseded)
+
+- **Status:** Superseded by D-068
+- **Date:** 2026-10-29
+- **Decision:** Normalize the user's supplied log into historical records bundled with the prototype. Merge those sessions, set entries, and weekly reflections into the existing local `DataDocument`; do not add a user-facing import screen or button.
+- **Why:** The user wants this specific log to appear as history, not a workflow for importing arbitrary future files. Its free-form notes and ambiguous results must remain intact rather than being guessed.
+- **Consequence:** This decision kept the supplied personal data in the client bundle and is replaced by account-specific migration in D-068.
+
+## D-068 — Use account-backed cloud storage for the web prototype
+
+- **Status:** Accepted
+- **Date:** 2026-10-29
+- **Decision:** Use Supabase Auth and store one versioned `DataDocument` JSONB row per authenticated user in Postgres. Enforce row-level security for reads and use a version-checked server function for writes. Keep the Supabase publishable key in browser configuration; never expose the service-role key to the browser.
+- **Why:** The user wants to start with web and does not want training history to exist only in one browser's local cache. Account ownership and durable cloud storage are core product questions, not implementation details to defer.
+- **Consequence:** The current state model stays intact while the source of truth moves to Postgres. Concurrent edits from another session fail visibly instead of silently overwriting. Offline edits and automatic conflict merging remain future work. The supplied personal history is migrated only to its designated account using a local admin script, never seeded for every registrant.
+
+## D-069 — Support email codes and passwords for web sign-in (superseded)
+
+- **Status:** Superseded by D-071
+- **Date:** 2026-10-29
+- **Decision:** Offer six-digit email-code sign-in alongside email/password sign-in. Let authenticated passwordless users set a password in the app, and provide email-code password recovery.
+- **Why:** The user needs to authenticate directly in the VS Code browser viewer, where opening an email link on the same host is inconvenient.
+- **Consequence:** This added email-code functionality but has been simplified to password-only sign-in and standard recovery links by D-071.
+
+## D-071 — Default to password sign-in and use email only for recovery
+
+- **Status:** Accepted
+- **Date:** 2026-10-29
+- **Decision:** Make email/password the only sign-in method shown. Remove in-app email-code sign-in, keep password account creation, and use Supabase's standard recovery email link for forgotten passwords.
+- **Why:** The user wants to sign in directly in the VS Code viewer and does not want regular sign-in to depend on opening email.
+- **Consequence:** Password recovery requires receiving and opening a recovery link in the app browser, unless the local admin password command is used when email delivery is rate-limited. No custom SMTP or OTP email template is required for password sign-in.
+
 ## D-060 — Show duplicate-weekday selection only before a session
 
 - **Status:** Accepted
@@ -549,3 +581,11 @@ These remain open unless a later entry resolves them:
 - **Decision:** Model rest days on plan days, with an independent option to enable the weekly reflection workflow. The seeded Sunday is a rest day with reflection enabled. Weekly reviews cover Monday through Sunday and are keyed by the Monday date.
 - **Why:** Reflection should fit naturally into a user's chosen rest day rather than require a special workout or a fixed Sunday-only feature.
 - **Consequence:** This resolves the open Monday-versus-Tuesday week-start question in favor of Monday. Rest-day workouts are hidden from Today without deleting their plan blocks. The review summarizes the week's recorded sessions and supports an editable reflection and next-week goal. Starting or changing a session in that week marks an already-saved review stale.
+
+## D-070 — Put account and settings actions behind an initials avatar
+
+- **Status:** Accepted
+- **Date:** 2026-10-29
+- **Decision:** Replace the always-visible password/sign-out controls and Settings navigation tab with a top-corner account avatar. Use the user's initials when no profile image exists; the avatar menu contains Settings, password management, and sign-out.
+- **Why:** The user wants account actions and Settings grouped behind a familiar profile control rather than occupying the primary navigation and header.
+- **Consequence:** Keep workout navigation focused on Plans, Today, and History. Settings remains accessible from the account menu on every screen.

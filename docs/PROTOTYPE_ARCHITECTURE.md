@@ -12,7 +12,7 @@ The prototype is not intended to answer whether iCloud, Live Activities, WidgetK
 
 ### Included
 
-The browser prototype must make these requirements interactive:
+The web-first prototype must make these requirements interactive:
 
 - A user can create, name, edit, and activate their own training plan.
 - A plan can contain training days, ordered blocks, and exercises with target ranges.
@@ -34,8 +34,9 @@ The browser prototype must make these requirements interactive:
 - A history screen can inspect and edit prior sessions.
 - Sunday review drafts from the week, can be saved, and becomes stale after later edits.
 - Analytics render from actual stored records: hold trend, strength trend, hard sets, consistency, session length, benchmark, mobility, and PRs.
-- Existing text history can be pasted/imported; ambiguous lines are reported instead of guessed.
-- Data survives a browser refresh through a local persistence adapter.
+- Users sign in with passwords and recover access by email; each account's training data is isolated by Postgres row-level security.
+- The supplied legacy history is migrated only into the designated account; ambiguous source values are retained rather than guessed.
+- Data survives a browser refresh and is available across devices through Supabase.
 - JSON and CSV export work from the beginning.
 
 ### Deliberately excluded
@@ -49,7 +50,6 @@ These are represented, at most, by a note or a simulated visual state and are no
 - HealthKit
 - Siri, App Intents, and Action Button integration
 - native haptics and native sound behavior
-- accounts, login, and a custom backend
 - social features, coaching, and nutrition
 
 The prototype can show a visual “timer complete” cue and optionally use browser audio, but the product decision being validated is the timer and logging flow—not the iOS delivery mechanism.
@@ -60,9 +60,9 @@ Use a small Vite + React + TypeScript application developed in VS Code.
 
 - **UI:** React and plain CSS. Avoid a component library so the wireframe can change shape quickly.
 - **Routing:** a tiny hash route (`#/today`, `#/history`, and so on) rather than adding a router dependency.
-- **Persistence:** `localStorage` behind an adapter. This is appropriate because offline persistence is part of the product behavior; it is not pretending to be CloudKit.
+- **Auth and persistence:** Supabase Auth email/password sign-in and recovery links plus a versioned account-owned Postgres JSONB document, protected by row-level security and optimistic version checks.
 - **Charts:** lightweight SVG/CSS primitives generated from selectors. Do not introduce a charting dependency until the chart questions are validated.
-- **Data:** one versioned JSON document in local storage, seeded with a generic demo plan based on the supplied routine and a small amount of demo history.
+- **Data:** one versioned `DataDocument` per authenticated user. New accounts receive the generic plan seed; the supplied personal training log is imported only into its designated account.
 
 The prototype should run with one command:
 
@@ -83,20 +83,22 @@ training-log-prototype/
 │  ├─ App.tsx
 │  ├─ domain/
 │  │  ├─ model.ts          # SwiftData-shaped records and value types
-│  │  ├─ seed.ts           # exercises, levels, demo plan, demo history
+│  │  ├─ seed.ts           # exercises, levels, and generic starter plan
 │  │  ├─ plan.ts           # plan/day/block selectors and target expansion
 │  │  ├─ session.ts        # pure session status and set operations
 │  │  ├─ timers.ts         # timestamp-based timer transitions
 │  │  ├─ analytics.ts      # PRs and chart-ready projections
 │  │  ├─ review.ts         # Sunday draft and stale rules
-│  │  └─ importLog.ts      # parse/report imported free text
 │  ├─ state/
 │  │  ├─ appState.ts       # state shape and actions
 │  │  └─ reducer.ts        # pure domain reducer
 │  ├─ storage/
-│  │  ├─ repository.ts     # persistence interface
-│  │  └─ localStorage.ts   # browser adapter
+│  │  ├─ database.types.ts # Supabase schema types
+│  │  ├─ supabaseClient.ts # configured Supabase client
+│  │  ├─ supabaseRepository.ts # per-user cloud document adapter
+│  │  └─ document.ts      # persisted document validation
 │  ├─ screens/
+│  │  ├─ AuthScreen.tsx    # email-code and password sign-in
 │  │  ├─ TodayScreen.tsx
 │  │  ├─ PlansScreen.tsx
 │  │  ├─ PlanEditorScreen.tsx
@@ -104,10 +106,10 @@ training-log-prototype/
 │  │  ├─ HistoryScreen.tsx
 │  │  ├─ AnalyticsScreen.tsx
 │  │  ├─ ReviewScreen.tsx
-│  │  ├─ ImportScreen.tsx
 │  │  └─ SettingsScreen.tsx
 │  ├─ ui/
 │  │  ├─ AppShell.tsx
+│  │  ├─ AccountSecurity.tsx # initials avatar, account menu, and password management
 │  │  ├─ ExerciseCard.tsx
 │  │  ├─ PlanBlockEditor.tsx
 │  │  ├─ TimerPanel.tsx
@@ -116,6 +118,11 @@ training-log-prototype/
 │  │  └─ PrototypeBanner.tsx
 │  └─ styles/
 │     └─ prototype.css
+├─ scripts/
+│  ├─ importLegacyHistory.ts # private one-time account migration
+│  └─ legacyHistory.ts       # migration-only normalization; not in the browser app
+└─ private/
+   └─ legacyHistory.json    # local-only personal source, ignored by Git
 └─ README.md
 ```
 
@@ -248,6 +255,10 @@ type Session = {
   skipReason?: string;
   sleepHours?: number;
   importKey?: string;
+  isHistorical?: boolean;
+  durationSeconds?: number;
+  sourceText?: string;
+  hasUnresolvedHistory?: boolean;
 };
 
 type SetEntry = {
@@ -368,7 +379,7 @@ type AppState = {
     weeklyReviews: Record<ISODate, WeeklyReview>;
     settings: Settings;
   };
-  route: "today" | "summary" | "history" | "analytics" | "review" | "import" | "settings";
+  route: "today" | "summary" | "history" | "analytics" | "review" | "settings";
   selectedDate: ISODate;
   activeSessionId?: ID;
   timer: TimerState;
@@ -436,7 +447,6 @@ UPDATE_SESSION_NOTE
 UPDATE_SLEEP_HOURS
 SAVE_WEEKLY_REVIEW
 IMPORT_RECORDS
-RESET_DEMO_DATA
 EXPORT_JSON
 EXPORT_CSV
 ```
@@ -582,23 +592,21 @@ Charts can initially be simple SVG lines, bars, dots, and a calendar grid. The p
 - Starting or changing a session in that week marks a saved review stale; saving again clears the stale state.
 - PRs and richer planned-versus-completed analytics remain future additions.
 
-### Import
+### Supplied legacy history
 
-- paste or upload text
-- choose the starting week/date convention
-- run parser
-- show imported records and unresolved lines separately
-- confirm import
-- report duplicate `importKey` rows as already imported
+- Normalize the user's supplied log into dated historical sessions, set entries, and weekly reflections in a local one-time migration.
+- Store historical records in the same `DataDocument` collections as sessions created in the app.
+- Merge the private fixture into the explicitly selected account by stable IDs; do not overwrite existing user records.
+- Preserve the original session excerpt for any value that cannot be represented without guessing.
+- Keep date-only historical sessions date-only; store a recorded duration separately rather than inventing a time of day.
 
-The browser parser is a temporary interactive stand-in for the one-off Python script described in the spec. It must never silently coerce ambiguous text.
+The supplied log begins Tuesday, 2026-08-18 and contains eleven numbered weeks. Its source fixture is retained only at the ignored local path `private/legacyHistory.json`; it is not part of the repository or browser bundle. A local admin script imports it into only the explicitly configured account. It is not included in sign-up data or offered as a general in-app import flow.
 
 ### Settings
 
 - default lead-in
 - transition duration
 - level-up threshold
-- reset demo data
 - export JSON/CSV
 - fast-demo clock control
 
@@ -608,7 +616,7 @@ Build in vertical slices so each slice can be tried in the browser.
 
 ### Slice 1 — plans and first logging flow
 
-Seed the example plan, implement plan selection and the minimum plan editor, then implement Today, session start, rep stepper, set rows, finish, and local persistence. Done when a user can create or select a plan, log a full training day from it, and the session survives a refresh. The example plan may be assigned to Friday for demonstration, but the logging flow must not depend on Friday or on this particular routine.
+Seed the generic starter plan, implement plan selection and the minimum plan editor, then implement Today, session start, rep stepper, set rows, finish, and account-backed persistence. Done when a user can create or select a plan, log a full training day from it, and the session survives a refresh. The example plan may be assigned to Friday for demonstration, but the logging flow must not depend on Friday or on this particular routine.
 
 ### Slice 2 — hold behavior
 
@@ -618,9 +626,9 @@ Add lead-in, hold timestamps, floor/raw rounding, form flag, level/equipment def
 
 Add ordered stretch sequence, transitions, custom duration, ratings, stretch skips, manual finish, auto-finish, and partial status.
 
-### Slice 4 — history and import
+### Slice 4 — history and legacy data
 
-Add history editing and the ambiguity-reporting text importer. Seed or import the existing nine weeks.
+Add history browsing/editing and normalize the supplied legacy log into the same session records. Keep ambiguous values visible in the original excerpts rather than guessing.
 
 ### Slice 5 — review and analytics
 
@@ -646,8 +654,8 @@ The prototype is useful when a reviewer can perform this walkthrough without con
 10. Edit the plan, return to the old session, and confirm its historical targets are unchanged.
 11. Open Analytics and see the new records reflected.
 12. Enable reflection on a rest day, save the week's review, then start or change a session in that week and see the review become stale.
-13. Import an ambiguous text line and confirm it is flagged rather than guessed.
-14. Export JSON, reset demo data, and import the JSON back.
+13. Open a historical session and confirm its recorded entries, note, duration, and original excerpt are visible.
+14. Confirm the bundled legacy sessions coexist with newly logged sessions after refresh.
 
 If any step feels awkward, the prototype has found a product or state-model problem before SwiftUI work begins.
 

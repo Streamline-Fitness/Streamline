@@ -6,8 +6,12 @@ export function entriesForSession(data: DataDocument, sessionId: ID): SetEntry[]
 
 export function latestFinishedSession(data: DataDocument, date?: string): Session | undefined {
   return Object.values(data.sessions)
-    .filter((session) => session.finishedAt !== undefined && (date === undefined || session.date === date))
-    .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0];
+    .filter((session) => isSessionFinished(session) && (date === undefined || session.date === date))
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0];
+}
+
+export function isSessionFinished(session: Session): boolean {
+  return session.finishedAt !== undefined || session.isHistorical === true;
 }
 
 export function itemsForSession(data: DataDocument, sessionId: ID): SessionPlanItem[] {
@@ -23,6 +27,7 @@ export function entriesForPlanExercise(data: DataDocument, sessionId: ID, planEx
 export function sessionStatus(data: DataDocument, session: Session): SessionStatus {
   const entries = entriesForSession(data, session.id).filter((entry) => !entry.skipReason);
   if (entries.length === 0 && session.skipReason) return "skipped";
+  if (session.hasUnresolvedHistory) return "partial";
   const items = itemsForSession(data, session.id);
   if (items.length > 0 && items.every((item) => entries.some((entry) => entry.planExerciseId === item.planExerciseId))) {
     return "done";
@@ -31,13 +36,14 @@ export function sessionStatus(data: DataDocument, session: Session): SessionStat
 }
 
 export function sessionDurationMinutes(session: Session): number | undefined {
+  if (session.durationSeconds !== undefined) return Math.ceil(session.durationSeconds / 60);
   if (!session.startedAt || !session.finishedAt) return undefined;
   return Math.max(0, Math.ceil((session.finishedAt - session.startedAt) / 60000));
 }
 
 export function previousEntryForExercise(data: DataDocument, exerciseId: ID, beforeDate: string): SetEntry | undefined {
   const sessions = Object.values(data.sessions)
-    .filter((session) => session.date < beforeDate && session.finishedAt)
+    .filter((session) => session.date < beforeDate && isSessionFinished(session))
     .sort((a, b) => b.date.localeCompare(a.date));
   for (const session of sessions) {
     const entry = entriesForSession(data, session.id).find((candidate) => candidate.exerciseId === exerciseId);

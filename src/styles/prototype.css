@@ -26,6 +26,32 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .topbar h1 { margin: 3px 0 0; font-family: Georgia, serif; font-size: clamp(1.8rem, 4vw, 2.7rem); font-weight: 400; letter-spacing: -.04em; }
 .eyebrow, .plan-status, .subheading { color: var(--accent); font-size: .69rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .prototype-badge { border: 1px solid #d3a28e; border-radius: 999px; color: var(--accent-dark); font-size: .68rem; font-weight: 800; letter-spacing: .12em; padding: 7px 10px; }
+.account-toolbar { align-items: center; display: flex; gap: 14px; }
+.sync-status { color: var(--muted); font-size: .76rem; overflow-wrap: anywhere; text-align: right; }
+.auth-page { align-items: center; display: flex; justify-content: center; min-height: 100vh; padding: 24px; }
+.auth-card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); max-width: 440px; padding: 28px; width: 100%; }
+.auth-card h1 { font-size: 1.8rem; margin: 12px 0; }
+.auth-card > p { color: var(--muted); line-height: 1.55; }
+.auth-card form { display: grid; gap: 12px; margin-top: 22px; }
+.auth-card form label { font-weight: 700; }
+.auth-card form input { width: 100%; }
+.auth-message { color: var(--green); font-weight: 700; }
+.auth-mode-switch { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; margin-top: 20px; }
+.auth-actions { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; }
+.text-button { background: transparent; border: 0; color: var(--accent-dark); font-size: .85rem; font-weight: 700; padding: 7px 0; text-align: left; text-decoration: underline; }
+.text-button:disabled { opacity: .6; }
+.account-menu { position: relative; }
+.account-avatar { align-items: center; background: var(--accent-dark); border: 0; border-radius: 50%; color: white; display: flex; font-size: .85rem; font-weight: 800; height: 42px; justify-content: center; letter-spacing: .04em; width: 42px; }
+.account-avatar:hover, .account-avatar[aria-expanded="true"] { background: var(--ink); }
+.account-menu-panel { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); display: grid; gap: 5px; min-width: 250px; padding: 10px; position: absolute; right: 0; top: calc(100% + 9px); z-index: 5; }
+.account-menu-email { border-bottom: 1px solid var(--line); color: var(--muted); font-size: .8rem; margin-bottom: 3px; overflow-wrap: anywhere; padding: 6px 8px 11px; }
+.account-menu-item { background: transparent; border: 0; border-radius: 6px; color: var(--ink); padding: 9px 8px; text-align: left; }
+.account-menu-item:hover, .account-menu-item.active { background: #f0ece5; }
+.account-menu-item:disabled { opacity: .5; }
+.password-settings { border-bottom: 1px solid var(--line); display: grid; gap: 8px; padding: 8px; }
+.password-settings label { font-size: .82rem; font-weight: 700; text-align: left; }
+.account-security-message, .account-security-error { color: var(--green); font-size: .76rem; max-width: 260px; overflow-wrap: anywhere; padding: 4px 8px; }
+.account-security-error { color: var(--danger, #a23d32); }
 .primary-nav { display: flex; gap: 8px; border-bottom: 1px solid var(--line); }
 .nav-button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); padding: 11px 13px 12px; }
 .nav-button.active { border-bottom-color: var(--accent); color: var(--ink); font-weight: 700; }
@@ -102,6 +128,17 @@ textarea { min-height: 115px; resize: vertical; }
 .weekly-review-form textarea { width: 100%; }
 .review-save-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .review-save-row span { color: var(--muted); font-size: .8rem; }
+.history-list { display: grid; gap: 10px; }
+.history-session { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); padding: 16px; text-align: left; }
+.history-session:hover { border-color: #c9a18f; }
+.history-session-top, .history-session-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.history-session-meta { color: var(--muted); font-size: .8rem; margin-top: 8px; }
+.history-session p { color: var(--muted); font-size: .84rem; margin: 10px 0 0; white-space: pre-wrap; }
+.history-session .history-skip-reason { color: var(--accent-dark); }
+.legacy-history-notice { border: 1px solid #e4b8aa; border-radius: 8px; background: #fff8f3; color: var(--accent-dark); margin: 14px 0; padding: 12px 14px; font-size: .84rem; }
+.legacy-source-details { margin: 14px 0; }
+.legacy-source-details summary { color: var(--accent-dark); cursor: pointer; font-size: .84rem; font-weight: 700; }
+.legacy-source-text { max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); padding: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .78rem; }
 .editor-screen { max-width: 1040px; margin: 0 auto; }
 .plan-details-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); margin-bottom: 22px; padding: 15px; }
 .plan-details-editor label { color: var(--muted); font-size: .76rem; font-weight: 700; }
@@ -262,6 +299,9 @@ textarea { min-height: 115px; resize: vertical; }
 .summary-screen > .button { margin-top: 18px; }
 @keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 700px) {
+  .account-toolbar { gap: 8px; }
+  .sync-status { max-width: 105px; }
+  .account-menu-panel { max-width: min(320px, 90vw); }
   .topbar, .primary-nav, .page-content { width: min(100% - 24px, 600px);     .review-stats { grid-template-columns: repeat(2, 1fr); }
     .review-save-row { align-items: flex-start; flex-direction: column; }
   }
@@ -269,6 +309,7 @@ textarea { min-height: 115px; resize: vertical; }
   .topbar h1 { font-size: 1.8rem; }
   .section-heading, .today-header { display: block; }
   .section-heading > .button, .date-controls { margin-top: 15px; }
+  .history-session-top, .history-session-meta { align-items: flex-start; flex-direction: column; }
   .editor-heading-actions { margin-top: 15px; }
   .editor-grid { display: block; }
   .day-sidebar { border-right: 0; border-bottom: 1px solid var(--line); margin-bottom: 17px; padding: 0 0 13px; }
