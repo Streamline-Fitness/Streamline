@@ -589,3 +589,11 @@ These remain open unless a later entry resolves them:
 - **Decision:** Replace the always-visible password/sign-out controls and Settings navigation tab with a top-corner account avatar. Use the user's initials when no profile image exists; the avatar menu contains Settings, password management, and sign-out.
 - **Why:** The user wants account actions and Settings grouped behind a familiar profile control rather than occupying the primary navigation and header.
 - **Consequence:** Keep workout navigation focused on Plans, Today, and History. Settings remains accessible from the account menu on every screen.
+
+## D-072 — Host the prototype on GitHub Pages
+
+- **Status:** Accepted
+- **Date:** 2026-10-29
+- **Decision:** Publish the static web prototype through GitHub Pages using a GitHub Actions workflow and the repository's `github.io` URL. Keep Supabase as the authentication and data backend.
+- **Why:** The user wants a hosted app without purchasing or configuring a custom domain.
+- **Consequence:** Build the Vite app with the repository path as its base URL and configure Supabase Auth redirects for the hosted path. Only the Supabase URL and publishable key are used at build time; never expose the service-role key. Treat the site as a public prototype, not a production service.

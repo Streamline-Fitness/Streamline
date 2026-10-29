@@ -6,8 +6,9 @@
 
 - **Overall phase:** Implementation
 - **Current slice:** Web accounts and cloud persistence
-- **Next implementation slice:** Configure the Supabase email templates for numeric codes, verify both sign-in methods and account persistence in the browser, then continue with PRs and richer analytics
+- **Next implementation slice:** Complete the first GitHub Pages deployment, verify hosted sign-in and password recovery, then continue with PRs and richer analytics
 - **Prototype runnable:** Yes — configure Supabase as described in `README.md`, then run `npm install` and `npm run dev`
+- **Hosting:** GitHub Pages deployment workflow is configured; first deployment still requires repository Pages settings, Supabase Actions variables, and hosted Auth redirect configuration.
 - **Last updated:** 2026-10-29
 
 ## Completed
@@ -85,6 +86,7 @@
 
 - History browsing is implemented. The supplied log is retained as a private migration source (46 sessions, 417 movements, 440 set values, and 4 reflections) and is no longer automatically included in new accounts.
 - Supabase account-scoped document loading/saving, optimistic version checks, and row-level-security migration are implemented. The app deliberately does not fall back to local-only persistence.
+- A GitHub Actions workflow builds and publishes the Vite frontend to GitHub Pages using the project-path base URL; password-recovery redirects use that same base path.
 - Email/password sign-in and sign-up plus standard email-link password recovery are implemented. Password is the default and only sign-in method; recovery links need to open in the app browser.
 - Account settings are accessed from a top-corner initials avatar. Password management and sign-out are grouped in its menu; Settings is reachable there as well.
 - The Supabase schema migration is applied, the private history migration has completed for the designated account (46 sessions), and the user confirmed password login is working. Cross-account row-level-security isolation and concurrent-session behavior remain unverified.
@@ -96,12 +98,13 @@
 
 ## Recommended next step
 
-Sign in with the designated account, verify its document survives refresh, and confirm the 46 migrated sessions appear in History. If possible, test that a second account cannot read the first account's document. Walk through a regular workout, the partially parsed October 27 progressions, a note-only session, and a weekly reflection. The trailing Wednesday heading has no workout details and remains in the Tuesday source excerpt rather than becoming a fabricated session. Then implement PRs and richer analytics. Keep export before prototype cleanup.
+Configure GitHub Pages, the two browser-safe Supabase Actions variables, and the hosted Supabase Auth URLs as documented in `README.md`. After the first deployment, verify hosted sign-in, password recovery, document persistence, and the designated account's 46 migrated sessions. If possible, test that a second account cannot read the first account's document. Then continue with PRs and richer analytics. Keep export before prototype cleanup.
 
 ## Verification history
 
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-10-29 | Prepared GitHub Pages deployment | `npm.cmd run build -- --base=/Streamline/` and `git diff --check` pass; generated assets use the repository path. Live Pages deployment and hosted Auth behavior remain pending |
 | 2026-10-29 | Completed seeded-week walkthrough | Browser walkthrough passed for weekday plan structure, timed and untargeted logging, progression rest, session note/duration, and weekly reflection persistence, staleness, and toggle behavior |
 | 2026-10-29 | Bundled supplied training history | `npm.cmd run build`, fixture date/value checks, and Vite SSR merge test passed; browser History walkthrough remains pending |
 | 2026-10-29 | Added Supabase web accounts and cloud document storage | `npm.cmd run build`, account-bootstrap/private-history migration checks, document validation, and `git diff --check` pass. Live auth/RLS/cloud persistence were unverified at implementation time |

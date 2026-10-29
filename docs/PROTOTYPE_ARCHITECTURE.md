@@ -61,6 +61,7 @@ Use a small Vite + React + TypeScript application developed in VS Code.
 - **UI:** React and plain CSS. Avoid a component library so the wireframe can change shape quickly.
 - **Routing:** a tiny hash route (`#/today`, `#/history`, and so on) rather than adding a router dependency.
 - **Auth and persistence:** Supabase Auth email/password sign-in and recovery links plus a versioned account-owned Postgres JSONB document, protected by row-level security and optimistic version checks.
+- **Hosting:** GitHub Pages serves the static prototype from the repository's `github.io` URL; Supabase remains the backend. Deployment credentials are limited to browser-safe Supabase project settings.
 - **Charts:** lightweight SVG/CSS primitives generated from selectors. Do not introduce a charting dependency until the chart questions are validated.
 - **Data:** one versioned `DataDocument` per authenticated user. New accounts receive the generic plan seed; the supplied personal training log is imported only into its designated account.
 

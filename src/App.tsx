@@ -65,7 +65,8 @@ function AuthGate({ client }: { client: NonNullable<typeof supabase> }) {
         if (error) throw new Error(error.message);
       }}
       onSendPasswordReset={async (email) => {
-        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+        const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
         if (error) throw new Error(error.message);
       }}
     />;

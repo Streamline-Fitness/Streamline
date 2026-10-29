@@ -10,6 +10,7 @@ The web prototype uses React, TypeScript, Vite, plain CSS, and Supabase. It is n
 
 - [What is implemented](#what-is-implemented)
 - [Quick start](#quick-start)
+- [Hosting on GitHub Pages](#hosting-on-github-pages)
 - [Using the prototype](#using-the-prototype)
 - [How data works](#how-data-works)
 - [Project structure](#project-structure)
@@ -180,6 +181,19 @@ npm run preview
 ```
 
 The `dist/` folder is generated output and is intentionally excluded from Git.
+
+## Hosting on GitHub Pages
+
+The repository includes a GitHub Actions workflow that publishes the frontend to a free `github.io` address; you do not need to buy or configure a domain. Supabase remains the authentication and data backend. The site is still a prototype, not a production web service.
+
+1. In the repository's **Settings → Pages**, set the build and deployment source to **GitHub Actions**.
+2. In **Settings → Secrets and variables → Actions → Variables**, add:
+   - `VITE_SUPABASE_URL` — the Supabase project URL.
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` — the project's publishable key.
+3. In Supabase **Authentication → URL Configuration**, set the Site URL to `https://streamline-fitness.github.io/Streamline/` and add that same URL to the allowed redirect URLs. Keep `http://localhost:5173/**` allowed for local development.
+4. Push to `main` or run the **Deploy to GitHub Pages** workflow manually from the repository's **Actions** tab. After it succeeds, open `https://streamline-fitness.github.io/Streamline/`.
+
+The workflow fails rather than publishing an app without its Supabase configuration. The URL and publishable key are included in the browser bundle by design; never add a Supabase service-role key to repository variables, workflow configuration, or any `VITE_` variable. The repository and deployed site may be public, so only use GitHub Pages if that is acceptable. Free GitHub Pages availability for private repositories depends on the GitHub plan.
 
 ## Using the prototype
 
