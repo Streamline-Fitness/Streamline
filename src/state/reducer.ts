@@ -1,7 +1,7 @@
 import { expandSessionPlan, getScheduledDayForDate, todayISO, weekdayFromISO, weekStartForDate } from "../domain/plan";
 import { newId } from "../domain/ids";
 import { cloneData } from "../domain/seed";
-import { currentGuidedPlanExercise, isSessionFinished, latestFinishedSession, nextGuidedPlanExercise, nextPlanExerciseAfterEntry } from "../domain/session";
+import { currentGuidedPlanExercise, isSessionFinished, latestFinishedSession, nextGuidedPlanExercise, nextPlanExerciseAfterEntry, shouldRestAfterEntry } from "../domain/session";
 import type {
   ExerciseCategory,
   Exercise,
@@ -72,13 +72,13 @@ function markReviewStale(data: AppState["data"], date: string): void {
   if (review?.reviewedAt !== undefined) review.isStale = true;
 }
 
-function timerForTimedItem(data: AppState["data"], sessionId: ID, planExerciseId: ID, now: number, includePreparation: boolean): GuidedTimer {
+function timerForTimedItem(data: AppState["data"], sessionId: ID, planExerciseId: ID, now: number): GuidedTimer {
   const item = Object.values(data.sessionPlanItems).find((candidate) => candidate.sessionId === sessionId && candidate.planExerciseId === planExerciseId);
   if (!item) return { phase: "idle" };
   const exercise = data.exercises[item.exerciseId];
   const targetSeconds = item.secondsMax ?? exercise?.defaultHoldS ?? 0;
   const preparationSeconds = exercise?.leadInS ?? data.settings.defaultLeadInS;
-  if (includePreparation && preparationSeconds > 0) {
+  if (preparationSeconds > 0) {
     return { phase: "preparation", sessionId, planExerciseId, endsAt: now + preparationSeconds * 1000, targetSeconds };
   }
   return { phase: "exercise", sessionId, planExerciseId, startedAt: now, targetSeconds };
@@ -91,19 +91,16 @@ function restTimerForEntry(data: AppState["data"], sessionId: ID, planExerciseId
   return { phase: "rest", sessionId, planExerciseId, nextPlanExerciseId, startedAt: now, endsAt: now + durationSeconds * 1000, durationSeconds };
 }
 
-function stateAfterTimedEntry(data: AppState["data"], sessionId: ID, planExerciseId: ID, now: number): Pick<AppState, "guidedPlanExerciseId" | "guidedTimer"> {
+function stateAfterEntry(data: AppState["data"], sessionId: ID, planExerciseId: ID, now: number): Pick<AppState, "guidedPlanExerciseId" | "guidedTimer"> {
   const nextPlanExerciseId = nextPlanExerciseAfterEntry(data, sessionId, planExerciseId);
-  const restTimer = restTimerForEntry(data, sessionId, planExerciseId, now, nextPlanExerciseId);
-  if (restTimer.phase === "rest") return { guidedPlanExerciseId: planExerciseId, guidedTimer: restTimer };
+  if (shouldRestAfterEntry(data, sessionId, planExerciseId, nextPlanExerciseId)) {
+    const restTimer = restTimerForEntry(data, sessionId, planExerciseId, now, nextPlanExerciseId);
+    if (restTimer.phase === "rest") return { guidedPlanExerciseId: planExerciseId, guidedTimer: restTimer };
+  }
 
-  const nextItem = nextPlanExerciseId
-    ? Object.values(data.sessionPlanItems).find((item) => item.sessionId === sessionId && item.planExerciseId === nextPlanExerciseId)
-    : undefined;
-  const nextExercise = nextItem ? data.exercises[nextItem.exerciseId] : undefined;
-  const nextIsTimed = nextItem && (nextItem.secondsMax !== undefined || nextExercise?.metric === "seconds");
   return {
     guidedPlanExerciseId: nextPlanExerciseId,
-    guidedTimer: nextPlanExerciseId && nextIsTimed ? timerForTimedItem(data, sessionId, nextPlanExerciseId, now, true) : { phase: "idle" },
+    guidedTimer: { phase: "idle" },
   };
 }
 
@@ -288,10 +285,7 @@ export function reducer(state: AppState, action: Action): AppState {
       const existing = Object.values(state.data.sessions).find((session) => session.date === action.date && !session.finishedAt && !session.isHistorical);
       if (existing) {
         const current = currentGuidedPlanExercise(state.data, existing.id);
-        const currentItem = current ? Object.values(state.data.sessionPlanItems).find((item) => item.sessionId === existing.id && item.planExerciseId === current) : undefined;
-        const currentIsTimed = currentItem ? currentItem.secondsMax !== undefined || state.data.exercises[currentItem.exerciseId]?.metric === "seconds" : false;
-        const timer = current && currentIsTimed ? timerForTimedItem(state.data, existing.id, current, action.now, true) : { phase: "idle" as const };
-        return { ...state, activeSessionId: existing.id, guidedPlanExerciseId: current, guidedTimer: timer, clockNow: action.now, route: "today" };
+        return { ...state, activeSessionId: existing.id, guidedPlanExerciseId: current, guidedTimer: { phase: "idle" }, clockNow: action.now, route: "today" };
       }
       const data = cloneData(state.data);
       const session: Session = { id: action.sessionId, date: action.date, weekday: weekdayFromISO(action.date), planId: action.planId, planDayId: action.planDayId, startedAt: action.now, note: "" };
@@ -299,15 +293,13 @@ export function reducer(state: AppState, action: Action): AppState {
       markReviewStale(data, session.date);
       for (const item of expandSessionPlan(data, session.id, action.planDayId)) data.sessionPlanItems[item.id] = item;
       const firstItem = expandSessionPlan(data, session.id, action.planDayId)[0];
-      const firstIsTimed = firstItem ? firstItem.secondsMax !== undefined || data.exercises[firstItem.exerciseId]?.metric === "seconds" : false;
-      const firstTimer = firstItem && firstIsTimed ? timerForTimedItem(data, session.id, firstItem.planExerciseId, action.now, true) : { phase: "idle" as const };
-      return { ...updateState(state, data), activeSessionId: session.id, guidedPlanExerciseId: firstItem?.planExerciseId, guidedTimer: firstTimer, clockNow: action.now, route: "today" };
+      return { ...updateState(state, data), activeSessionId: session.id, guidedPlanExerciseId: firstItem?.planExerciseId, guidedTimer: { phase: "idle" }, clockNow: action.now, route: "today" };
     }
     case "START_GUIDED_EXERCISE": {
       const item = Object.values(state.data.sessionPlanItems).find((candidate) => candidate.sessionId === action.sessionId && candidate.planExerciseId === action.planExerciseId);
       if (!item) return state;
       const exercise = state.data.exercises[item.exerciseId];
-      const timer = timerForTimedItem(state.data, action.sessionId, action.planExerciseId, action.now, true);
+      const timer = timerForTimedItem(state.data, action.sessionId, action.planExerciseId, action.now);
       if (timer.phase === "idle") return { ...state, error: "This exercise does not have a timed target." };
       return { ...state, guidedPlanExerciseId: action.planExerciseId, guidedTimer: timer, clockNow: action.now };
     }
@@ -320,9 +312,7 @@ export function reducer(state: AppState, action: Action): AppState {
       const session = data.sessions[action.sessionId];
       if (session) markReviewStale(data, session.date);
       const next = Object.values(data.sessionPlanItems).filter((candidate) => candidate.sessionId === action.sessionId && candidate.blockOrder > item.blockOrder).sort((a, b) => a.blockOrder - b.blockOrder || a.exerciseOrder - b.exerciseOrder)[0];
-      const nextExercise = next ? data.exercises[next.exerciseId] : undefined;
-      const nextTimer = next && (next.secondsMax !== undefined || nextExercise?.metric === "seconds") ? timerForTimedItem(data, action.sessionId, next.planExerciseId, action.now, true) : { phase: "idle" as const };
-      return { ...updateState(state, data), guidedPlanExerciseId: next?.planExerciseId, guidedTimer: nextTimer, clockNow: action.now };
+      return { ...updateState(state, data), guidedPlanExerciseId: next?.planExerciseId, guidedTimer: { phase: "idle" }, clockNow: action.now };
     }
     case "CLOCK_TICK": {
       if (state.guidedTimer.phase === "idle") return { ...state, clockNow: action.now };
@@ -341,15 +331,12 @@ export function reducer(state: AppState, action: Action): AppState {
         data.setEntries[entry.id] = entry;
         const session = data.sessions[timer.sessionId];
         if (session) markReviewStale(data, session.date);
-        return { ...updateState(state, data), ...stateAfterTimedEntry(data, timer.sessionId, timer.planExerciseId, action.now), clockNow: action.now };
+        return { ...updateState(state, data), ...stateAfterEntry(data, timer.sessionId, timer.planExerciseId, action.now), clockNow: action.now };
       }
       if (state.guidedTimer.phase === "rest" && action.now >= state.guidedTimer.endsAt) {
         const timer = state.guidedTimer;
         const nextId = timer.nextPlanExerciseId;
-        const nextItem = nextId ? Object.values(state.data.sessionPlanItems).find((candidate) => candidate.sessionId === timer.sessionId && candidate.planExerciseId === nextId) : undefined;
-        const nextExercise = nextItem ? state.data.exercises[nextItem.exerciseId] : undefined;
-        const nextTimer = nextId && nextItem && (nextItem.secondsMax !== undefined || nextExercise?.metric === "seconds") ? timerForTimedItem(state.data, timer.sessionId, nextId, action.now, true) : { phase: "idle" as const };
-        return { ...state, guidedPlanExerciseId: nextId, guidedTimer: nextTimer, clockNow: action.now };
+        return { ...state, guidedPlanExerciseId: nextId, guidedTimer: { phase: "idle" }, clockNow: action.now };
       }
       return { ...state, clockNow: action.now };
     }
@@ -397,15 +384,12 @@ export function reducer(state: AppState, action: Action): AppState {
       data.setEntries[entry.id] = entry;
       const session = data.sessions[action.sessionId];
       if (session) markReviewStale(data, session.date);
-      return { ...updateState(state, data), ...stateAfterTimedEntry(data, action.sessionId, action.planExerciseId, action.now), clockNow: action.now };
+      return { ...updateState(state, data), ...stateAfterEntry(data, action.sessionId, action.planExerciseId, action.now), clockNow: action.now };
     }
     case "SKIP_REST": {
       if (state.guidedTimer.phase !== "rest" || state.guidedTimer.sessionId !== action.sessionId || state.guidedTimer.planExerciseId !== action.planExerciseId) return state;
       const nextId = state.guidedTimer.nextPlanExerciseId;
-      const nextItem = nextId ? Object.values(state.data.sessionPlanItems).find((item) => item.sessionId === action.sessionId && item.planExerciseId === nextId) : undefined;
-      const nextExercise = nextItem ? state.data.exercises[nextItem.exerciseId] : undefined;
-      const nextTimer = nextId && nextItem && (nextItem.secondsMax !== undefined || nextExercise?.metric === "seconds") ? timerForTimedItem(state.data, action.sessionId, nextId, action.now, true) : { phase: "idle" as const };
-      return { ...state, guidedPlanExerciseId: nextId, guidedTimer: nextTimer, clockNow: action.now };
+      return { ...state, guidedPlanExerciseId: nextId, guidedTimer: { phase: "idle" }, clockNow: action.now };
     }
     case "COMMIT_REP_SET": {
       const data = cloneData(state.data);
@@ -413,9 +397,7 @@ export function reducer(state: AppState, action: Action): AppState {
       data.setEntries[entry.id] = entry;
       const session = data.sessions[action.sessionId];
       if (session) markReviewStale(data, session.date);
-      const next = nextGuidedPlanExercise(data, action.sessionId, action.planExerciseId);
-      const item = Object.values(data.sessionPlanItems).find((candidate) => candidate.sessionId === action.sessionId && candidate.planExerciseId === action.planExerciseId);
-        return { ...updateState(state, data), guidedPlanExerciseId: action.planExerciseId, guidedTimer: restTimerForEntry(data, action.sessionId, action.planExerciseId, action.now, next), clockNow: action.now };
+      return { ...updateState(state, data), ...stateAfterEntry(data, action.sessionId, action.planExerciseId, action.now), clockNow: action.now };
     }
     case "SKIP_GUIDED_EXERCISE": {
       const data = cloneData(state.data);

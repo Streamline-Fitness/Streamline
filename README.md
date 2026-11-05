@@ -34,7 +34,7 @@ The current implementation includes plan authoring, guided session logging, week
 - Training days can be renamed or deleted.
 - Blocks can be configured as:
   - Straight sets
-  - Supersets
+  - Supersets, which alternate exercises each round and rest after the pair
   - Circuits
   - Timed sequences
 - Blocks support configurable round and rest ranges.
@@ -75,6 +75,7 @@ The current implementation includes plan authoring, guided session logging, week
   - Session duration
 - Summary fields can be edited after the session is finished.
 - The session's original plan targets remain unchanged if the plan is edited later.
+- In a superset, complete one set of each exercise in order, then rest before starting the next round.
 
 ### History
 

@@ -312,14 +312,14 @@
 - **Why:** A user may need to abandon an entire block because of time, equipment, pain, or a change in plan. Recording only skipped exercises loses the meaningful unit of the decision.
 - **Consequence:** Today displays the skipped block and reason, and historical data can distinguish a skipped block from a block that was never planned or not yet reached.
 
-## D-039 — Use configurable lead-in before every timed hold (supersedes D-039's prior block-rest behavior)
+## D-039 — Use configurable lead-in before every timed hold (superseded by D-077)
 
-- **Status:** Accepted
+- **Status:** Superseded by D-077
 - **Date:** 2026-10-21
-- **Decision:** Every timed hold/stretch uses the configurable lead-in as the preparation countdown. When preparation ends, the hold timer starts automatically; preparation time is not counted as hold time.
+- **Decision:** Every timed hold/stretch uses the configurable lead-in as the preparation countdown after its Start control is pressed. When preparation ends, the hold timer starts automatically; preparation time is not counted as hold time.
 - **Why:** Every hold needs the same predictable time to get into position. The user explicitly changed the earlier decision that limited preparation to the first hold in a block and used block rest.
-- **Consequence:** Preparation is represented as its own timestamp-based timer phase for every timed exercise. The on-screen label says `Get ready`, then changes to the hold timer automatically. Block rest remains post-set recovery/preparation between exercises, not the hold lead-in.
-- **Clarification:** Starting a session on a timed first exercise enters this preparation phase immediately; the user does not need to press Start hold first.
+- **Consequence:** Preparation is represented as its own timestamp-based timer phase for every timed exercise. The on-screen label says `Get ready`, then changes to the hold timer automatically. Block rest remains post-set recovery between exercises, not the hold lead-in.
+- **Clarification:** Starting a session on a timed first exercise leaves it ready; the user presses Start hold to enter the preparation phase.
 
 ## D-047 — Make the default hold lead-in configurable in Settings
 
@@ -333,9 +333,9 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-21
-- **Decision:** When the current exercise is a timed stretch/hold and is first in its block, the block rest is a visible `Get ready` countdown before the hold. When the current exercise is strength/reps, the block rest starts after `Log set` and is displayed as a visible `Rest` countdown.
+- **Decision:** When the current exercise is strength/reps, the block rest starts after `Log set` and is displayed as a visible `Rest` countdown. Timed exercise preparation starts only after the user presses Start.
 - **Why:** The same configured duration serves two different workflow purposes: preparation before a hold and recovery after strength work. The label must explain which one is happening.
-- **Consequence:** Rest is not silently applied. The timer phase and label make preparation versus recovery explicit. The next guided exercise remains unavailable until post-set rest completes.
+- **Consequence:** Rest is not silently applied. Timed exercises remain idle and ready after any preceding rest until the user explicitly starts the preparation countdown.
 
 ## D-041 — Derive skipped-block display from persisted session data
 
@@ -621,3 +621,19 @@ These remain open unless a later entry resolves them:
 - **Decision:** Before each cloud write, keep the latest account document in a user-scoped browser recovery slot. Remove it after Supabase confirms the save. Retry failed writes when connectivity returns and provide an explicit retry control. If optimistic version checking finds newer cloud data, preserve the recovery copy and offer it for download instead of overwriting or merging either version.
 - **Why:** A failed or offline save must not silently discard a completed workout, while Supabase remains the durable source of truth and concurrent edits remain protected.
 - **Consequence:** The browser stores a temporary copy of the account document while a save is pending and can reopen it if cloud loading is unavailable. It is not authoritative or automatically merged; a version conflict requires the user to retain the downloadable recovery file and resolve the two copies deliberately.
+
+## D-076 — Run supersets as alternating rounds
+
+- **Status:** Accepted
+- **Date:** 2026-11-04
+- **Decision:** In a superset block, guide one set of each exercise in order without an intervening rest, then rest after the final exercise before beginning the next round. Other block types keep their existing per-exercise rest behavior.
+- **Why:** A superset is a paired sequence of exercises performed back-to-back, with recovery after the pair rather than between its exercises.
+- **Consequence:** The user's seeded push/pull and other paired blocks alternate exercises for each round. The existing block rest range applies between rounds.
+
+## D-077 — Require an explicit start for timed exercises
+
+- **Status:** Accepted
+- **Date:** 2026-11-04
+- **Decision:** Starting a session or advancing to a timed exercise leaves its timer idle. The user must press Start hold to begin that exercise's configurable preparation countdown and subsequent timer. Rest completion and skipping rest also leave a timed next exercise idle.
+- **Why:** Timed sets and stretches should not begin counting down or consuming the lead-in before the user is ready.
+- **Consequence:** Automatic transitions may select the next timed exercise but never start its timer. Explicit Start remains the only transition into preparation.

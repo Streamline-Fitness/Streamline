@@ -20,6 +20,7 @@ The web-first prototype must make these requirements interactive:
 - A scheduled day opens pre-filled from the active plan; an unscheduled day can be started from the plan.
 - A session can be started, paused by leaving the page, and manually finished.
 - Starting a session enters guided mode: one exercise is current, its block opens automatically, and completing it advances to rest and then the next planned exercise.
+- Superset blocks alternate one set per exercise without rest between the pair, then rest after the final exercise before the next round.
 - Rep exercises use a previous-result default and a stepper.
 - Hold exercises have a lead-in, timestamp-based stopwatch, floor rounding, raw decimal retention, level/equipment defaults, and clean/shaky/bailed form selection.
 - Every recorded set can be edited or undone.
@@ -307,7 +308,7 @@ Plans are user-owned arrangements, not hard-coded weekday templates. The plan ed
 1. Create or rename a plan.
 2. Add one or more training days and optionally assign each day to a weekday.
 3. Add ordered blocks to a day.
-4. Choose a block type: straight sets, superset, circuit, or timed sequence.
+4. Choose a block type: straight sets, superset, circuit, or timed sequence. Supersets guide each exercise once per round and apply rest between rounds.
 5. Add an exercise from the library or create a custom exercise.
 6. Set the target metric/range, round count, side mode, and rest range.
 7. Reorder or remove blocks and exercises.
@@ -661,6 +662,7 @@ The prototype is useful when a reviewer can perform this walkthrough without con
 13. Open a historical session and confirm its recorded entries, note, duration, and original excerpt are visible.
 14. Confirm the bundled legacy sessions coexist with newly logged sessions after refresh.
 15. Simulate a failed save, confirm the recovery copy is retried after reconnect, and confirm a version conflict offers a download without overwriting newer cloud data.
+16. Complete one round of a superset and confirm the paired exercises alternate without rest, then rest begins before the next round.
 
 If any step feels awkward, the prototype has found a product or state-model problem before SwiftUI work begins.
 

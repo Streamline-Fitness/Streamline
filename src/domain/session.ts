@@ -95,6 +95,24 @@ export function nextPlanExerciseAfterEntry(data: DataDocument, sessionId: ID, cu
   return items.find((item) => item.blockOrder > current.blockOrder && item.exerciseOrder === 0)?.planExerciseId;
 }
 
+export function shouldRestAfterEntry(
+  data: DataDocument,
+  sessionId: ID,
+  currentPlanExerciseId: ID,
+  nextPlanExerciseId: ID | undefined,
+): boolean {
+  const items = itemsForSession(data, sessionId);
+  const current = items.find((item) => item.planExerciseId === currentPlanExerciseId);
+  if (!current || current.blockType !== "superset") return true;
+
+  const blockItems = items.filter((item) => item.blockId === current.blockId);
+  if (blockItems.length < 2) return true;
+
+  const currentIndex = blockItems.findIndex((item) => item.planExerciseId === currentPlanExerciseId);
+  const nextIndex = blockItems.findIndex((item) => item.planExerciseId === nextPlanExerciseId);
+  return nextIndex === -1 || nextIndex <= currentIndex;
+}
+
 export function currentGuidedPlanExercise(data: DataDocument, sessionId: ID): ID | undefined {
   const items = itemsForSession(data, sessionId);
   const blockOrders = [...new Set(items.map((item) => item.blockOrder))].sort((a, b) => a - b);
