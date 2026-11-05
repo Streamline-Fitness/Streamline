@@ -17,7 +17,8 @@ The web-first prototype must make these requirements interactive:
 - A user can create, name, edit, and activate their own training plan.
 - A plan can contain training days, ordered blocks, and exercises with target ranges.
 - Blocks can represent straight sets, supersets, circuits, or ordered timed sequences.
-- A scheduled day opens pre-filled from the active plan; an unscheduled day can be started from the plan.
+- Today's scheduled day opens pre-filled from the active plan. Other dates remain browseable, but only the current local day can be started.
+- New sessions can only be started for the current local calendar day. Other dates can be browsed but never started or backdated.
 - A session can be started, paused by leaving the page, and manually finished.
 - Starting a session enters guided mode: one exercise is current, its block opens automatically, and completing it advances to rest and then the next planned exercise.
 - Superset blocks alternate one set per exercise without rest between the pair, then rest after the final exercise before the next round.
@@ -649,7 +650,7 @@ The prototype is useful when a reviewer can perform this walkthrough without con
 
 1. Open Plans and see the example plan based on the supplied routine.
 2. Create or edit a plan, add a day, add a superset block, and save it.
-3. Activate that plan and open Today on its scheduled day.
+3. Activate that plan and open Today when its training day is scheduled for the current local calendar day.
 4. Start the session and log a rep exercise.
 5. Start a hold, fast-forward through lead-in, stop it, choose `clean`, and see the floored value and raw decimal.
 6. Edit the value and observe `edited = true`; undo another set and confirm it disappears.
@@ -663,6 +664,7 @@ The prototype is useful when a reviewer can perform this walkthrough without con
 14. Confirm the bundled legacy sessions coexist with newly logged sessions after refresh.
 15. Simulate a failed save, confirm the recovery copy is retried after reconnect, and confirm a version conflict offers a download without overwriting newer cloud data.
 16. Complete one round of a superset and confirm the paired exercises alternate without rest, then rest begins before the next round.
+17. Browse to a past or future planned day and confirm there is no Start session action; return to today and confirm today's workout can start.
 
 If any step feels awkward, the prototype has found a product or state-model problem before SwiftUI work begins.
 

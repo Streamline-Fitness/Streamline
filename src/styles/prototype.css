@@ -131,7 +131,10 @@ textarea { min-height: 115px; resize: vertical; }
 .review-save-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .review-save-row span { color: var(--muted); font-size: .8rem; }
 .history-list { display: grid; gap: 10px; }
+.history-session-item { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
 .history-session { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); padding: 16px; text-align: left; }
+.history-session-item .history-session { border: 0; }
+.discard-session-button { margin: 0 16px 10px; }
 .history-session:hover { border-color: #c9a18f; }
 .history-session-top, .history-session-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .history-session-meta { color: var(--muted); font-size: .8rem; margin-top: 8px; }
@@ -222,6 +225,7 @@ textarea { min-height: 115px; resize: vertical; }
 .guided-rest-countdown { font-variant-numeric: tabular-nums; font-size: 1.45rem; font-weight: 750; }
 .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4d9265; margin-right: 6px; }
 .start-button { display: flex; justify-content: space-between; width: 100%; margin: 20px 0 30px; font-size: 1rem; }
+.start-day-notice { border: 1px solid var(--line); border-radius: 8px; color: var(--muted); margin: 20px 0 30px; padding: 12px 14px; }
 .completed-session-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid #b9d1bd; border-radius: 9px; background: #edf6ed; color: var(--green); margin: 20px 0 30px; padding: 14px 16px; }
 .completed-session-card strong, .completed-session-card span { display: block; }
 .completed-session-card strong { color: var(--ink); margin-top: 3px; }

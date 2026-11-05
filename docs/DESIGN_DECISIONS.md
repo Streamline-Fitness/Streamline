@@ -637,3 +637,19 @@ These remain open unless a later entry resolves them:
 - **Decision:** Starting a session or advancing to a timed exercise leaves its timer idle. The user must press Start hold to begin that exercise's configurable preparation countdown and subsequent timer. Rest completion and skipping rest also leave a timed next exercise idle.
 - **Why:** Timed sets and stretches should not begin counting down or consuming the lead-in before the user is ready.
 - **Consequence:** Automatic transitions may select the next timed exercise but never start its timer. Explicit Start remains the only transition into preparation.
+
+## D-078 — Start sessions only on the current local day
+
+- **Status:** Accepted
+- **Date:** 2026-11-04
+- **Decision:** Allow a new session to start only when its date matches the current local calendar day. Keep date navigation available for browsing past and future plans/history, but do not offer Start session on those dates. Enforce the same rule in the reducer.
+- **Why:** The user accidentally started a session for a past Friday and wants session starts tied to the real day rather than a browsed plan date.
+- **Consequence:** Workouts cannot be backdated or started ahead of their scheduled day; the local calendar date is derived from the action timestamp.
+
+## D-079 — Allow discarding an in-progress session
+
+- **Status:** Accepted
+- **Date:** 2026-11-04
+- **Decision:** History offers an explicit, confirmed discard action for unfinished, non-historical sessions only. Discarding removes that session and its plan snapshot, set entries, and skipped-block records.
+- **Why:** An accidentally started future or past session must be removable so the user can start the workout on the actual day.
+- **Consequence:** Finished and imported sessions cannot be discarded through this action. The confirmation warns that any logged sets will also be permanently removed.

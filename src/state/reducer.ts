@@ -49,6 +49,7 @@ export type Action =
   | { type: "SKIP_GUIDED_EXERCISE"; setId: ID; sessionId: ID; planExerciseId: ID; exerciseId: ID; setNo: number; reason: string; now: number }
   | { type: "SKIP_GUIDED_BLOCK"; skippedBlockId: ID; sessionId: ID; blockId: ID; reason: string; now: number }
   | { type: "FINISH_SESSION"; sessionId: ID; now: number }
+  | { type: "DELETE_IN_PROGRESS_SESSION"; sessionId: ID }
   | { type: "VIEW_SESSION"; sessionId: ID }
   | { type: "DISMISS_SESSION_SUMMARY" }
   | { type: "UPDATE_SESSION_NOTE"; sessionId: ID; note: string }
@@ -282,6 +283,9 @@ export function reducer(state: AppState, action: Action): AppState {
       return updateState(state, data);
     }
     case "START_SESSION": {
+      if (action.date !== todayISO(action.now)) {
+        return { ...state, error: "Sessions can only be started for today. Return to today's date to begin this workout." };
+      }
       const existing = Object.values(state.data.sessions).find((session) => session.date === action.date && !session.finishedAt && !session.isHistorical);
       if (existing) {
         const current = currentGuidedPlanExercise(state.data, existing.id);
@@ -411,6 +415,34 @@ export function reducer(state: AppState, action: Action): AppState {
     case "FINISH_SESSION": {
       const next = withSession(state, action.sessionId, (session) => ({ ...session, finishedAt: action.now, finishMode: "manual" }));
       return { ...next, activeSessionId: undefined, guidedPlanExerciseId: undefined, guidedTimer: { phase: "idle" }, lastFinishedSessionId: action.sessionId, viewedSessionId: action.sessionId, route: "today" };
+    }
+    case "DELETE_IN_PROGRESS_SESSION": {
+      const session = state.data.sessions[action.sessionId];
+      if (!session) return { ...state, error: "That session is no longer available." };
+      if (isSessionFinished(session) || session.isHistorical) {
+        return { ...state, error: "Only an in-progress session can be discarded." };
+      }
+
+      const data = cloneData(state.data);
+      delete data.sessions[action.sessionId];
+      for (const [id, item] of Object.entries(data.sessionPlanItems)) {
+        if (item.sessionId === action.sessionId) delete data.sessionPlanItems[id];
+      }
+      for (const [id, entry] of Object.entries(data.setEntries)) {
+        if (entry.sessionId === action.sessionId) delete data.setEntries[id];
+      }
+      for (const [id, skippedBlock] of Object.entries(data.skippedBlocks)) {
+        if (skippedBlock.sessionId === action.sessionId) delete data.skippedBlocks[id];
+      }
+      markReviewStale(data, session.date);
+      return {
+        ...updateState(state, data),
+        activeSessionId: state.activeSessionId === action.sessionId ? undefined : state.activeSessionId,
+        guidedPlanExerciseId: state.activeSessionId === action.sessionId ? undefined : state.guidedPlanExerciseId,
+        guidedTimer: state.activeSessionId === action.sessionId ? { phase: "idle" } : state.guidedTimer,
+        viewedSessionId: state.viewedSessionId === action.sessionId ? undefined : state.viewedSessionId,
+        lastFinishedSessionId: state.lastFinishedSessionId === action.sessionId ? undefined : state.lastFinishedSessionId,
+      };
     }
     case "DISMISS_SESSION_SUMMARY":
       return { ...state, viewedSessionId: undefined, lastFinishedSessionId: undefined, route: "today" };

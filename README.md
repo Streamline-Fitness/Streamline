@@ -207,8 +207,8 @@ The quickest way to explore the current slice is:
 5. Add or edit blocks and exercises.
 6. Assign a weekday to the training day if you want Today to select it automatically.
 7. Click **Make active** for the plan you want to use.
-8. Open **Today** and navigate to the date assigned to the training day.
-9. Click **Start session**.
+8. Open **Today** on the current local calendar day and ensure the active plan has a workout scheduled for today. Other dates remain available for browsing but cannot be started.
+9. Click **Start session** for today's workout.
 10. Expand the current block and log one or more rep sets.
 11. For timed exercises, use the preparation countdown and hold controls.
 12. Try skipping a rest or skipping a block with a reason.

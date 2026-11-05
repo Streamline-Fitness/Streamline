@@ -91,6 +91,8 @@
 - Unsynced saves now get a temporary user-scoped browser recovery copy, an explicit retry action, and an automatic retry after connectivity returns. Version conflicts preserve a downloadable local copy and never overwrite newer cloud data.
 - Superset blocks now alternate exercises each round and rest only after the pair is complete; other block types keep their prior rest flow.
 - Timed exercises now remain idle until the user presses Start hold, including at session start and after rest or superset transitions.
+- New sessions can only be started for the current local calendar day; past and future dates remain browseable but show no Start session action.
+- History now offers a confirmation-gated discard action for in-progress sessions, removing their associated entries and plan snapshot while protecting finished and imported history.
 - A GitHub Actions workflow builds and publishes the Vite frontend to GitHub Pages using the project-path base URL; password-recovery redirects use that same base path.
 - Email/password sign-in and sign-up plus standard email-link password recovery are implemented. Password is the default and only sign-in method; recovery links need to open in the app browser.
 - Account settings are accessed from a top-corner initials avatar. Password management and sign-out are grouped in its menu; Settings is reachable there as well.
@@ -109,6 +111,8 @@ Configure GitHub Pages, the two browser-safe Supabase Actions variables, and the
 
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-11-04 | Added discard for accidentally started in-progress sessions | Production build and targeted reducer cascade/protection checks pass; browser walkthrough pending |
+| 2026-11-04 | Restrict starting new sessions to the current local day | Production build, reducer date-guard checks, and `git diff --check` pass; browser walkthrough pending |
 | 2026-11-04 | Require explicit start before timed exercise preparation | Production build and targeted reducer checks pass; live browser walkthrough pending |
 | 2026-11-04 | Changed superset guidance to alternate paired exercises | Production build and targeted reducer/domain checks pass; live browser walkthrough pending |
 | 2026-11-04 | Added recovery and retry for failed cloud saves | `npm.cmd run build`, recovery-draft storage checks, and `git diff --check` pass; live Supabase offline/reconnect and conflict walkthrough remains pending |
