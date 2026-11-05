@@ -236,7 +236,7 @@ The prototype keeps structured records rather than storing a screen-shaped form.
 
 The supplied historical log is normalized into `Session`, `SessionPlanItem`, `SetEntry`, and `WeeklyReview` records. A one-time local admin script merges those records into the designated account's existing `DataDocument`; normal sign-up never seeds the supplied personal log. Historical sessions keep date and duration without fabricated start timestamps; unresolved source values remain in each session's original excerpt.
 
-Each account currently stores one JSONB `DataDocument` row. This preserves the app's existing typed state model while moving the source of truth to Postgres. Writes include an expected version, so another browser/device cannot silently overwrite a newer copy. This prototype does not yet support offline edits or automatic conflict merging.
+Each account currently stores one JSONB `DataDocument` row. This preserves the app's existing typed state model while moving the source of truth to Postgres. Writes include an expected version, so another browser/device cannot silently overwrite a newer copy. Before a cloud save, the app temporarily stores a user-scoped recovery copy in this browser; it removes that copy after the server confirms the save. If a save fails, the app keeps and retries the copy when connectivity returns. If the cloud version changed elsewhere, it blocks automatic saving and offers a download instead of overwriting newer data. This browser copy is a recovery buffer, not the source of truth, and offline changes are not automatically merged.
 
 ### Why sessions use snapshots
 
@@ -471,6 +471,10 @@ Then check the browser developer console for errors. Also confirm that dependenc
 ### Changes do not appear
 
 Refresh the browser. If account data does not load, verify the Supabase project URL/key, SQL migration, email provider, and redirect URL. Loading and saving failures are shown in the interface rather than replaced with local-only data.
+
+### A save failed or the app showed an offline warning
+
+If the page is still open, keep it open and reconnect to the internet. The app retries unsynced changes when connectivity returns; you can also choose **Retry saving**. The app keeps a temporary recovery copy in that browser until Supabase confirms the save, so it can restore a pending save after a refresh, including when the cloud service is temporarily unreachable. If another device changed the cloud document in the meantime, download the offered recovery copy before continuing; the app will not merge or overwrite either copy automatically.
 
 ### Old data is interfering with testing
 

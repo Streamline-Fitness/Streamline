@@ -97,6 +97,7 @@ training-log-prototype/
 │  │  ├─ database.types.ts # Supabase schema types
 │  │  ├─ supabaseClient.ts # configured Supabase client
 │  │  ├─ supabaseRepository.ts # per-user cloud document adapter
+│  │  ├─ recoveryDraft.ts # temporary backup for unsynced writes
 │  │  └─ document.ts      # persisted document validation
 │  ├─ screens/
 │  │  ├─ AuthScreen.tsx    # email-code and password sign-in
@@ -134,6 +135,7 @@ Before Slice 1 begins, the corresponding `src/` directories are scaffolded in th
 - `domain/` contains pure product rules and data types.
 - `state/` contains application state and reducer transitions.
 - `storage/` contains persistence interfaces and browser adapters.
+- `storage/recoveryDraft.ts` keeps a user-scoped browser recovery copy only while cloud changes are unsynced; Supabase remains authoritative.
 - `screens/` contains route-level compositions.
 - `ui/` contains reusable visual modules that do not own business rules.
 - `styles/` contains prototype CSS.
@@ -406,11 +408,12 @@ reduce(state: AppState, action: Action, now: number): AppState
 
 It is pure. `now` is passed in rather than read inside the reducer, so timer behavior is deterministic and can be driven by either real browser time or a fast-forward prototype clock.
 
-The browser shell owns only three effects:
+The browser shell owns these effects:
 
-1. Load and save the versioned document through the repository.
-2. Dispatch a `CLOCK_TICK` action on an interval while a timer is active.
-3. Change the URL hash when navigation changes.
+1. Load and save the versioned document through the Supabase repository, keeping a temporary local recovery copy until the server confirms the save. If cloud loading is unavailable, restore an existing unsynced copy.
+2. Retry an unsynced save when connectivity returns; preserve and expose a recovery download when optimistic version checking finds a conflict.
+3. Dispatch a `CLOCK_TICK` action on an interval while a timer is active.
+4. Change the URL hash when navigation changes.
 
 Components do not calculate elapsed time, PRs, session status, or review staleness.
 
@@ -657,6 +660,7 @@ The prototype is useful when a reviewer can perform this walkthrough without con
 12. Enable reflection on a rest day, save the week's review, then start or change a session in that week and see the review become stale.
 13. Open a historical session and confirm its recorded entries, note, duration, and original excerpt are visible.
 14. Confirm the bundled legacy sessions coexist with newly logged sessions after refresh.
+15. Simulate a failed save, confirm the recovery copy is retried after reconnect, and confirm a version conflict offers a download without overwriting newer cloud data.
 
 If any step feels awkward, the prototype has found a product or state-model problem before SwiftUI work begins.
 
@@ -670,7 +674,7 @@ The browser prototype does not make the eventual app automatic, but it preserves
 | Reducer actions | Observable model methods / feature reducers |
 | `timers.ts` timestamp rules | Swift timer state and ActivityKit content state |
 | Analytics selectors | Swift Charts data preparation |
-| Local-storage repository | SwiftData/CloudKit persistence adapter |
+| Supabase repository and temporary recovery draft | SwiftData/CloudKit persistence adapter |
 | Hash routes and screens | SwiftUI navigation destinations |
 | Fast demo clock | Preview/test clock, not shipped behavior |
 

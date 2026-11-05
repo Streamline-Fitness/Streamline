@@ -613,3 +613,11 @@ These remain open unless a later entry resolves them:
 - **Decision:** When account data loads, restore the active session for the viewed date and select its next pending exercise. Do not restore an unrecorded timer; a timed exercise is ready to start again.
 - **Why:** Reloading should not leave an in-progress session without an active exercise or show an obsolete timed-entry placeholder.
 - **Consequence:** Logged entries remain intact. An unrecorded hold's elapsed time and any remaining rest/preparation countdown are not retained across a page reload.
+
+## D-075 — Keep a temporary recovery copy for unsynced cloud writes
+
+- **Status:** Accepted
+- **Date:** 2026-11-04
+- **Decision:** Before each cloud write, keep the latest account document in a user-scoped browser recovery slot. Remove it after Supabase confirms the save. Retry failed writes when connectivity returns and provide an explicit retry control. If optimistic version checking finds newer cloud data, preserve the recovery copy and offer it for download instead of overwriting or merging either version.
+- **Why:** A failed or offline save must not silently discard a completed workout, while Supabase remains the durable source of truth and concurrent edits remain protected.
+- **Consequence:** The browser stores a temporary copy of the account document while a save is pending and can reopen it if cloud loading is unavailable. It is not authoritative or automatically merged; a version conflict requires the user to retain the downloadable recovery file and resolve the two copies deliberately.
