@@ -1,7 +1,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { createSeedData } from "./domain/seed";
-import { supabase } from "./storage/supabaseClient";
+import { AuthGate } from "./features/auth/AuthGate";
+import { supabase, type AppSupabaseClient } from "./storage/supabaseClient";
 import { supabaseRepository } from "./storage/supabaseRepository";
 import { clearRecoveryDraft, readRecoveryDraft, recoveryDraftMatches, writeRecoveryDraft, type RecoveryDraft } from "./storage/recoveryDraft";
 import { createInitialState } from "./state/appState";
@@ -16,7 +17,6 @@ import { SettingsScreen } from "./screens/SettingsScreen";
 import { WeeklyReviewScreen } from "./screens/WeeklyReviewScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
 import { JournalScreen } from "./screens/JournalScreen";
-import { AuthScreen } from "./screens/AuthScreen";
 import "./styles/prototype.css";
 
 function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "settings" | "review" | "history" | "journal" {
@@ -24,59 +24,7 @@ function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "setti
   return route === "plan-editor" || route === "today" || route === "summary" || route === "settings" || route === "review" || route === "history" || route === "journal" ? route : "today";
 }
 
-function AuthGate({ client }: { client: NonNullable<typeof supabase> }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [authError, setAuthError] = useState("");
-  const authRedirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
-
-  useEffect(() => {
-    let active = true;
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setAuthReady(true);
-      setAuthError("");
-    });
-
-    client.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      if (error) setAuthError(`Could not check your sign-in: ${error.message}`);
-      else setSession(data.session);
-      setAuthReady(true);
-    }).catch((error: unknown) => {
-      if (!active) return;
-      setAuthError(error instanceof Error ? error.message : "Could not check your sign-in.");
-      setAuthReady(true);
-    });
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, [client]);
-
-  if (!authReady) return <main className="auth-page"><p role="status">Checking your account…</p></main>;
-  if (!session) {
-    return <AuthScreen
-      authError={authError}
-      onSignInWithPassword={async (email, password) => {
-        const { error } = await client.auth.signInWithPassword({ email, password });
-        if (error) throw new Error(error.message);
-      }}
-      onSignUpWithPassword={async (email, password) => {
-        const { error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectTo } });
-        if (error) throw new Error(error.message);
-      }}
-      onSendPasswordReset={async (email) => {
-        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: authRedirectTo });
-        if (error) throw new Error(error.message);
-      }}
-    />;
-  }
-  return <AuthenticatedApp client={client} key={session.user.id} session={session} />;
-}
-
-function AuthenticatedApp({ client, session }: { client: NonNullable<typeof supabase>; session: Session }) {
+function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; session: Session }) {
   const [state, dispatch] = useReducer(reducer, undefined, () => ({ ...createInitialState(), route: routeFromHash() }));
   const [loadError, setLoadError] = useState("");
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -344,6 +292,7 @@ function AuthenticatedApp({ client, session }: { client: NonNullable<typeof supa
 }
 
 export default function App() {
-  if (!supabase) return <main className="auth-page"><section className="auth-card"><div className="eyebrow">SUPABASE SETUP</div><h1>Connect your project</h1><p>Add your Supabase project URL and publishable key to a local <code>.env.local</code> file. See <code>.env.example</code> and the README setup instructions.</p></section></main>;
-  return <AuthGate client={supabase} />;
+  const client = supabase;
+  if (!client) return <main className="auth-page"><section className="auth-card"><div className="eyebrow">SUPABASE SETUP</div><h1>Connect your project</h1><p>Add your Supabase project URL and publishable key to a local <code>.env.local</code> file. See <code>.env.example</code> and the README setup instructions.</p></section></main>;
+  return <AuthGate client={client}>{(session) => <AuthenticatedApp client={client} key={session.user.id} session={session} />}</AuthGate>;
 }

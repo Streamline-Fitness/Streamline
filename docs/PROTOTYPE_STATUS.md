@@ -34,6 +34,9 @@
 - Changed the exercise library to a dropdown with one focused exercise editor instead of showing all exercise forms at once.
 - Added contextual tooltips and accessible labels to compact, icon, date, plan, block, target, and exercise-library controls.
 - Added a custom dumbbell-style favicon matching the prototype's training-log brand and wired it into the app shell.
+- Added Vitest regression coverage for plan scheduling/snapshots, session progression/status, and critical reducer transitions.
+- Extracted authentication and sign-in state handling from the app composition into a focused `features/auth/AuthGate.tsx` boundary without changing the authentication flow.
+- Moved the typed action contract into `state/actions.ts` and isolated journal transitions in `state/journalReducer.ts`; the root reducer delegates those actions while existing call sites and behavior remain compatible.
 - Compact target ranges now display equal values once (for example, `60 sec` instead of `60–60 sec`).
 - Add-exercise controls now start blank with placeholders and require an explicit exercise and valid target range before adding.
 - Custom exercise creation and library editing now include category, metric, pattern, skill ID, lead-in, and default hold fields.

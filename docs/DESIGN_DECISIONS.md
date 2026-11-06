@@ -685,3 +685,11 @@ These remain open unless a later entry resolves them:
 - **Decision:** Allow any number of journal entries per date. Each entry has one user-defined category and remains fully readable and editable in the archive.
 - **Why:** The user wants to record multiple thoughts in a day, organize them under categories they define, and view/edit each complete entry.
 - **Consequence:** Entries are stored by unique ID rather than date. Deleting a category keeps its entries and text but removes that category assignment. Older single-entry-per-day records are upgraded during document loading.
+
+## D-083 — Refactor incrementally behind regression tests
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Improve maintainability incrementally: add regression tests around pure domain and reducer behavior before extracting cohesive feature boundaries. Keep domain rules and persisted data contracts stable during structural refactors.
+- **Why:** The reducer, account synchronization, and training history contain behavior where regressions could affect user data. Tests make future modularization safer without forcing a high-risk rewrite.
+- **Consequence:** Feature boundaries may be introduced gradually. Existing behavior and state contracts remain in place until a tested change justifies evolving them.

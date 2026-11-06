@@ -89,19 +89,27 @@ training-log-prototype/
 │  │  ├─ model.ts          # SwiftData-shaped records and value types
 │  │  ├─ seed.ts           # exercises, levels, and generic starter plan
 │  │  ├─ plan.ts           # plan/day/block selectors and target expansion
+│  │  ├─ plan.test.ts      # regression tests for plan rules
 │  │  ├─ session.ts        # pure session status and set operations
+│  │  ├─ session.test.ts   # regression tests for session rules
 │  │  ├─ timers.ts         # timestamp-based timer transitions
 │  │  ├─ analytics.ts      # PRs and chart-ready projections
 │  │  ├─ review.ts         # Sunday draft and stale rules
 │  ├─ state/
-│  │  ├─ appState.ts       # state shape and actions
-│  │  └─ reducer.ts        # pure domain reducer
+│  │  ├─ appState.ts       # state shape
+│  │  ├─ actions.ts        # typed application action contract
+│  │  ├─ reducer.ts        # root reducer and cross-feature transitions
+│  │  ├─ journalReducer.ts # journal feature transitions
+│  │  └─ reducer.test.ts   # regression tests for key transitions
 │  ├─ storage/
 │  │  ├─ database.types.ts # Supabase schema types
 │  │  ├─ supabaseClient.ts # configured Supabase client
 │  │  ├─ supabaseRepository.ts # per-user cloud document adapter
 │  │  ├─ recoveryDraft.ts # temporary backup for unsynced writes
 │  │  └─ document.ts      # persisted document validation
+│  ├─ features/
+│  │  └─ auth/
+│  │     └─ AuthGate.tsx  # authentication state and sign-in boundary
 │  ├─ screens/
 │  │  ├─ AuthScreen.tsx    # email-code and password sign-in
 │  │  ├─ TodayScreen.tsx
@@ -141,8 +149,10 @@ Before Slice 1 begins, the corresponding `src/` directories are scaffolded in th
 - `storage/` contains persistence interfaces and browser adapters.
 - `storage/recoveryDraft.ts` keeps a user-scoped browser recovery copy only while cloud changes are unsynced; Supabase remains authoritative.
 - `screens/` contains route-level compositions.
+- `features/` contains cohesive workflow boundaries that coordinate UI with services; move existing flows incrementally rather than duplicating domain rules.
 - `ui/` contains reusable visual modules that do not own business rules.
 - `styles/` contains prototype CSS.
+- Pure domain rules and reducer transitions should have regression tests, colocated with the module they protect.
 
 ## 5. Domain model
 

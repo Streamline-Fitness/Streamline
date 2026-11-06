@@ -3,62 +3,17 @@ import { newId } from "../domain/ids";
 import { cloneData } from "../domain/seed";
 import { currentGuidedPlanExercise, isSessionFinished, latestFinishedSession, nextGuidedPlanExercise, nextPlanExerciseAfterEntry, shouldRestAfterEntry } from "../domain/session";
 import type {
-  ExerciseCategory,
   Exercise,
   ID,
-  Metric,
-  Pattern,
-  PlanBlockType,
-  SideMode,
   Session,
   SetEntry,
   SkippedBlock,
 } from "../domain/model";
-import type { AppState, GuidedTimer, Route } from "./appState";
+import type { Action } from "./actions";
+import { journalReducer } from "./journalReducer";
+import type { AppState, GuidedTimer } from "./appState";
 
-export type Action =
-  | { type: "HYDRATE"; data: AppState["data"] }
-  | { type: "NAVIGATE"; route: Route }
-  | { type: "SELECT_DATE"; date: string }
-  | { type: "SELECT_PLAN"; planId: ID }
-  | { type: "SELECT_PLAN_DAY"; dayId: ID }
-  | { type: "CREATE_PLAN"; planId: ID; name: string; now: number }
-  | { type: "UPDATE_PLAN"; planId: ID; name: string; description: string; now: number }
-  | { type: "ACTIVATE_PLAN"; planId: ID }
-  | { type: "ADD_PLAN_DAY"; dayId: ID; planId: ID; name: string; weekday?: number }
-  | { type: "UPDATE_PLAN_DAY"; dayId: ID; name: string; weekday?: number; isRestDay?: boolean; reflectionEnabled?: boolean }
-  | { type: "DELETE_PLAN_DAY"; dayId: ID }
-  | { type: "ADD_PLAN_BLOCK"; blockId: ID; dayId: ID; name: string; blockType: PlanBlockType }
-  | { type: "UPDATE_PLAN_BLOCK"; blockId: ID; name: string; blockType: PlanBlockType; roundsMin: number; roundsMax: number; restMinS: number; restMaxS: number }
-  | { type: "DELETE_PLAN_BLOCK"; blockId: ID }
-  | { type: "ADD_PLAN_EXERCISE"; planExerciseId: ID; blockId: ID; exerciseId: ID; repsMin?: number; repsMax?: number; secondsMin?: number; secondsMax?: number; sideMode: SideMode }
-  | { type: "REMOVE_PLAN_EXERCISE"; planExerciseId: ID }
-  | { type: "CREATE_CUSTOM_EXERCISE"; exerciseId: ID; name: string; category: ExerciseCategory; metric: Metric; pattern?: Pattern; skillId?: string; leadInS?: number; defaultHoldS?: number; sideMode: SideMode }
-  | { type: "UPDATE_EXERCISE"; exerciseId: ID; name: string; category: ExerciseCategory; metric: Metric; pattern?: Pattern; skillId?: string; leadInS?: number; defaultHoldS?: number; sideMode: SideMode }
-  | { type: "DELETE_EXERCISE"; exerciseId: ID }
-  | { type: "START_SESSION"; sessionId: ID; date: string; planId: ID; planDayId: ID; now: number }
-  | { type: "START_GUIDED_EXERCISE"; sessionId: ID; planExerciseId: ID; now: number }
-  | { type: "CLOCK_TICK"; now: number }
-  | { type: "PAUSE_GUIDED_EXERCISE"; now: number }
-  | { type: "RESUME_GUIDED_EXERCISE"; now: number }
-  | { type: "CONTINUE_GUIDED_EXERCISE"; sessionId: ID; planExerciseId: ID; now: number }
-  | { type: "SKIP_REST"; sessionId: ID; planExerciseId: ID; now: number }
-  | { type: "UPDATE_SETTINGS"; defaultLeadInS: number }
-  | { type: "SAVE_WEEKLY_REVIEW"; weekStart: string; reflection: string; nextWeekGoal: string; reviewedAt: number }
-  | { type: "SAVE_JOURNAL_ENTRY"; entryId: ID; date: string; text: string; categoryId: ID; updatedAt: number }
-  | { type: "DELETE_JOURNAL_ENTRY"; entryId: ID }
-  | { type: "ADD_JOURNAL_CATEGORY"; categoryId: ID; name: string }
-  | { type: "RENAME_JOURNAL_CATEGORY"; categoryId: ID; name: string }
-  | { type: "DELETE_JOURNAL_CATEGORY"; categoryId: ID }
-  | { type: "COMMIT_REP_SET"; setId: ID; sessionId: ID; planExerciseId: ID; exerciseId: ID; setNo: number; reps: number; now: number }
-  | { type: "SKIP_GUIDED_EXERCISE"; setId: ID; sessionId: ID; planExerciseId: ID; exerciseId: ID; setNo: number; reason: string; now: number }
-  | { type: "SKIP_GUIDED_BLOCK"; skippedBlockId: ID; sessionId: ID; blockId: ID; reason: string; now: number }
-  | { type: "FINISH_SESSION"; sessionId: ID; now: number }
-  | { type: "DELETE_IN_PROGRESS_SESSION"; sessionId: ID }
-  | { type: "VIEW_SESSION"; sessionId: ID }
-  | { type: "DISMISS_SESSION_SUMMARY" }
-  | { type: "UPDATE_SESSION_NOTE"; sessionId: ID; note: string }
-  | { type: "UPDATE_SLEEP_HOURS"; sessionId: ID; sleepHours?: number };
+export type { Action } from "./actions";
 
 function updateState(state: AppState, data: AppState["data"]): AppState {
   return { ...state, data, error: undefined };
@@ -174,58 +129,12 @@ export function reducer(state: AppState, action: Action): AppState {
       };
       return updateState(state, data);
     }
-    case "SAVE_JOURNAL_ENTRY": {
-      const data = cloneData(state.data);
-      if (!data.journalCategories[action.categoryId]) {
-        return { ...state, error: "Choose a journal category before saving." };
-      }
-      if (!action.text.trim()) return { ...state, error: "Write something before saving your journal entry." };
-      data.journalEntries[action.entryId] = {
-        id: action.entryId,
-        date: action.date,
-        text: action.text,
-        categoryId: action.categoryId,
-        updatedAt: action.updatedAt,
-      };
-      return updateState(state, data);
-    }
-    case "DELETE_JOURNAL_ENTRY": {
-      if (!state.data.journalEntries[action.entryId]) return state;
-      const data = cloneData(state.data);
-      delete data.journalEntries[action.entryId];
-      return updateState(state, data);
-    }
-    case "ADD_JOURNAL_CATEGORY": {
-      const name = action.name.trim();
-      if (!name) return { ...state, error: "Enter a category name." };
-      if (Object.values(state.data.journalCategories).some((category) => category.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0)) {
-        return { ...state, error: "That journal category already exists." };
-      }
-      const data = cloneData(state.data);
-      data.journalCategories[action.categoryId] = { id: action.categoryId, name };
-      return updateState(state, data);
-    }
-    case "RENAME_JOURNAL_CATEGORY": {
-      const category = state.data.journalCategories[action.categoryId];
-      const name = action.name.trim();
-      if (!category) return { ...state, error: "That journal category is no longer available." };
-      if (!name) return { ...state, error: "Enter a category name." };
-      if (Object.values(state.data.journalCategories).some((candidate) => candidate.id !== category.id && candidate.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0)) {
-        return { ...state, error: "That journal category already exists." };
-      }
-      const data = cloneData(state.data);
-      data.journalCategories[action.categoryId] = { ...category, name };
-      return updateState(state, data);
-    }
-    case "DELETE_JOURNAL_CATEGORY": {
-      if (!state.data.journalCategories[action.categoryId]) return state;
-      const data = cloneData(state.data);
-      delete data.journalCategories[action.categoryId];
-      for (const entry of Object.values(data.journalEntries)) {
-        if (entry.categoryId === action.categoryId) delete entry.categoryId;
-      }
-      return updateState(state, data);
-    }
+    case "SAVE_JOURNAL_ENTRY":
+    case "DELETE_JOURNAL_ENTRY":
+    case "ADD_JOURNAL_CATEGORY":
+    case "RENAME_JOURNAL_CATEGORY":
+    case "DELETE_JOURNAL_CATEGORY":
+      return journalReducer(state, action);
     case "CREATE_PLAN": {
       const data = cloneData(state.data);
       data.plans[action.planId] = { id: action.planId, name: action.name, isActive: false, createdAt: action.now, updatedAt: action.now };

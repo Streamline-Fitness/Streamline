@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test": "vitest run",
     "preview": "vite preview",
     "import:legacy-history": "tsx scripts/importLegacyHistory.ts",
     "set:account-password": "tsx scripts/setAccountPassword.ts"
@@ -21,6 +22,7 @@
     "vite": "latest"
   },
   "devDependencies": {
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "vitest": "^5.1.0"
   }
 }

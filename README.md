@@ -285,15 +285,23 @@ training-log-prototype/
    │  ├─ ids.ts
    │  ├─ seed.ts
    │  ├─ plan.ts
-   │  └─ session.ts
+   │  ├─ plan.test.ts
+   │  ├─ session.ts
+   │  └─ session.test.ts
    ├─ state/
    │  ├─ appState.ts
-   │  └─ reducer.ts
+   │  ├─ actions.ts
+   │  ├─ reducer.ts
+   │  ├─ journalReducer.ts
+   │  └─ reducer.test.ts
    ├─ storage/
    │  ├─ database.types.ts
    │  ├─ document.ts
    │  ├─ supabaseClient.ts
    │  └─ supabaseRepository.ts
+   ├─ features/
+   │  └─ auth/
+   │     └─ AuthGate.tsx
    ├─ screens/
    │  ├─ AuthScreen.tsx
    │  ├─ TodayScreen.tsx
@@ -314,11 +322,13 @@ training-log-prototype/
 The source is organized by responsibility:
 
 - **`domain/`** contains data types, seed data, selectors, and pure training rules.
-- **`state/`** contains application state and explicit reducer actions.
+- **`state/`** contains application state, the typed action contract, and root/feature reducers.
 - **`storage/`** contains the Supabase client, persisted-document validation, and account repository.
 - **`screens/`** contains route-level screen compositions.
+- **`features/`** contains cohesive workflow boundaries; the auth gate is the first extracted feature.
 - **`ui/`** contains reusable visual components.
 - **`styles/`** contains the plain CSS for the prototype.
+- Pure domain rules and reducer transitions have colocated regression tests. Run them with `npm test`.
 
 The domain and state seams are the most valuable parts to carry forward conceptually. The screen markup and CSS are intentionally disposable.
 
@@ -402,6 +412,8 @@ See [`docs/PROTOTYPE_STATUS.md`](docs/PROTOTYPE_STATUS.md) for the living implem
 ```bash
 npm install       # install dependencies
 npm run dev       # start the Vite development server
+npm test          # run domain and reducer regression tests
+npm test          # run domain and reducer regression tests
 npm run build     # type-check and create a production build
 npm run preview   # serve the production build locally
 ```
