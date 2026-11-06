@@ -27,6 +27,7 @@ function AuthGate({ client }: { client: NonNullable<typeof supabase> }) {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState("");
+  const authRedirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
 
   useEffect(() => {
     let active = true;
@@ -62,12 +63,11 @@ function AuthGate({ client }: { client: NonNullable<typeof supabase> }) {
         if (error) throw new Error(error.message);
       }}
       onSignUpWithPassword={async (email, password) => {
-        const { error } = await client.auth.signUp({ email, password });
+        const { error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectTo } });
         if (error) throw new Error(error.message);
       }}
       onSendPasswordReset={async (email) => {
-        const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
-        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+        const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: authRedirectTo });
         if (error) throw new Error(error.message);
       }}
     />;

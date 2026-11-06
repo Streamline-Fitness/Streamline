@@ -191,7 +191,7 @@ The repository includes a GitHub Actions workflow that publishes the frontend to
 2. In **Settings → Secrets and variables → Actions → Variables**, add:
    - `VITE_SUPABASE_URL` — the Supabase project URL.
    - `VITE_SUPABASE_PUBLISHABLE_KEY` — the project's publishable key.
-3. In Supabase **Authentication → URL Configuration**, set the Site URL to `https://streamline-fitness.github.io/Streamline/` and add that same URL to the allowed redirect URLs. Keep `http://localhost:5173/**` allowed for local development.
+3. In Supabase **Authentication → URL Configuration**, set the Site URL to `https://streamline-fitness.github.io/Streamline/` and add that same URL to the allowed redirect URLs. Keep `http://localhost:5173/**` allowed for local development. Sign-up confirmation and password recovery links explicitly return to the app URL currently open in the browser, so each deployed site URL must be on the allowed redirect list.
 4. Push to `main` or run the **Deploy to GitHub Pages** workflow manually from the repository's **Actions** tab. After it succeeds, open `https://streamline-fitness.github.io/Streamline/`.
 
 The workflow fails rather than publishing an app without its Supabase configuration. The URL and publishable key are included in the browser bundle by design; never add a Supabase service-role key to repository variables, workflow configuration, or any `VITE_` variable. The repository and deployed site may be public, so only use GitHub Pages if that is acceptable. Free GitHub Pages availability for private repositories depends on the GitHub plan.
@@ -471,7 +471,7 @@ Then check the browser developer console for errors. Also confirm that dependenc
 
 ### Changes do not appear
 
-Refresh the browser. If account data does not load, verify the Supabase project URL/key, SQL migration, email provider, and redirect URL. Loading and saving failures are shown in the interface rather than replaced with local-only data.
+Refresh the browser. If account data does not load, verify the Supabase project URL/key, SQL migration, email provider, and redirect URL. For auth emails that point to localhost, verify the Supabase Site URL and that the live app URL is in the allowed redirect URLs. Loading and saving failures are shown in the interface rather than replaced with local-only data.
 
 ### A save failed or the app showed an offline warning
 

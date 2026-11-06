@@ -653,3 +653,11 @@ These remain open unless a later entry resolves them:
 - **Decision:** History offers an explicit, confirmed discard action for unfinished, non-historical sessions only. Discarding removes that session and its plan snapshot, set entries, and skipped-block records.
 - **Why:** An accidentally started future or past session must be removable so the user can start the workout on the actual day.
 - **Consequence:** Finished and imported sessions cannot be discarded through this action. The confirmation warns that any logged sets will also be permanently removed.
+
+## D-080 — Return auth emails to the current app URL
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Request the current app base URL as the redirect for sign-up confirmation and password-recovery emails.
+- **Why:** Relying on Supabase's Site URL fallback can send hosted users to a localhost development URL.
+- **Consequence:** Each live app URL must be included in Supabase's allowed redirect URLs; the configured Site URL remains the fallback.
