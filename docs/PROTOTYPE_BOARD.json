@@ -1,0 +1,70 @@
+{
+  "format": "streamline-training-log-kanban",
+  "version": 1,
+  "columns": {
+    "backlog": [
+      {
+        "id": "c8c57912-e430-4b3d-a245-2246506dc74e",
+        "title": "PRs, richer analytics, and export",
+        "description": "",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-06T23:26:48.215Z"
+      }
+    ],
+    "ready": [
+      {
+        "id": "e46b5d8a-3c88-42b7-9790-3ed679a6fd12",
+        "title": "Complete the first GitHub Pages deployment, verify hosted sign-in and password recovery, then continue with PRs and richer analytics",
+        "description": "",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-06T23:22:11.685Z"
+      }
+    ],
+    "inProgress": [
+      {
+        "id": "e74b779a-f362-434b-bd58-1967863d69c4",
+        "title": "Web accounts, cloud persistence, and journaling",
+        "description": "",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-06T23:28:33.730Z"
+      }
+    ],
+    "done": [
+      {
+        "id": "1d32d245-de9c-406e-91e1-57d898ba57a2",
+        "title": "Add a shared prototype kanban board",
+        "description": "Users and agents manage the same workspace board with card CRUD and status moves.",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-06T23:25:52.895Z"
+      },
+      {
+        "id": "68bb26a9-e7f9-48f4-aa20-e0d94716b7bd",
+        "title": "Defined the browser prototype boundary in `docs/PROTOTYPE_ARCHITECTURE.md`.",
+        "description": "",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-06T23:22:11.685Z"
+      },
+      {
+        "id": "6e890112-a35b-444d-b2a0-175b0cc9f839",
+        "title": "Defined the prototype's domain records, reducer seam, timer semantics, screens, build slices, and acceptance walkthrough.",
+        "description": "",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-06T23:22:11.685Z"
+      },
+      {
+        "id": "1d924bf7-5ca1-4e80-ae01-a0644eca7485",
+        "title": "Revised the model so users create and activate their own plans instead of using a hard-coded routine.",
+        "description": "",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-06T23:22:11.685Z"
+      },
+      {
+        "id": "b610541a-34ee-4022-b94c-8dd74d309fe9",
+        "title": "Read and reviewed `docs/requirements/Training Log iOS App Spec v2.md`.",
+        "description": "",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-06T23:29:19.381Z"
+      }
+    ]
+  }
+}

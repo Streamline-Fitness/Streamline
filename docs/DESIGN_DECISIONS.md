@@ -701,3 +701,19 @@ These remain open unless a later entry resolves them:
 - **Decision:** Coordinate account document loading, optimistic-version saves, and local recovery drafts in a dedicated account-data feature service. Keep browser storage behind the recovery-draft adapter and inject repository/storage dependencies for tests.
 - **Why:** `App.tsx` should compose screens and app-level effects rather than directly own a complex save queue and recovery/conflict workflow. The behavior must remain testable without a live Supabase account or browser storage.
 - **Consequence:** Supabase remains the authoritative source of data; local drafts remain a recovery buffer only. The existing per-user format, conflict handling, and user-facing recovery actions are preserved.
+
+## D-085 — Use Streamline Fitness as the app-facing brand
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Use “Streamline Fitness” as the browser tab title and app-shell brand. Keep the visible prototype disclosure until the web app's validation status and production readiness are explicitly changed.
+- **Why:** The user wants the app identified by its product name rather than “Training Log Prototype,” while the current web build remains the prototype described by project scope and documentation.
+- **Consequence:** Product branding is distinct from implementation status; changing the title does not imply production readiness.
+
+## D-086 - Use a shared workspace artifact for the prototype kanban board
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Store prototype work cards in `docs/PROTOTYPE_BOARD.json`, and use the same validated board operations from the interactive Copilot canvas and agent-invocable actions.
+- **Why:** The canvas should be a bidirectional work surface where the user and agent see and update the same cards, rather than a read-only mirror of status prose.
+- **Consequence:** The first open seeds a versioned board from the current status document. Subsequent changes are authoritative in the board artifact; browser views poll for agent changes. Corrupt or unknown board data is reported and never silently replaced.

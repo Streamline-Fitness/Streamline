@@ -13,7 +13,7 @@
 
 ## Completed
 
-- Added a workspace-scoped Copilot canvas that presents prototype status and its next milestone from this document, with a refresh action.
+- Added a bidirectional workspace-scoped Copilot kanban board; user and agent share card changes in the workspace board file.
 - Read and reviewed `docs/requirements/Training Log iOS App Spec v2.md`.
 - Defined the browser prototype boundary in `docs/PROTOTYPE_ARCHITECTURE.md`.
 - Defined the prototype's domain records, reducer seam, timer semantics, screens, build slices, and acceptance walkthrough.
@@ -35,6 +35,7 @@
 - Changed the exercise library to a dropdown with one focused exercise editor instead of showing all exercise forms at once.
 - Added contextual tooltips and accessible labels to compact, icon, date, plan, block, target, and exercise-library controls.
 - Added a custom dumbbell-style favicon matching the prototype's training-log brand and wired it into the app shell.
+- Updated the browser tab and app-shell brand to Streamline Fitness; retained the prototype disclosure while the web app remains a validation build.
 - Added Vitest regression coverage for plan scheduling/snapshots, session progression/status, and critical reducer transitions.
 - Extracted authentication and sign-in state handling from the app composition into a focused `features/auth/AuthGate.tsx` boundary without changing the authentication flow.
 - Moved the typed action contract into `state/actions.ts` and isolated journal transitions in `state/journalReducer.ts`; the root reducer delegates those actions while existing call sites and behavior remain compatible.
@@ -119,7 +120,11 @@ Configure GitHub Pages, the two browser-safe Supabase Actions variables, and the
 
 | Date | Change | Verification |
 | --- | --- | --- |
-| 2026-11-06 | Added workspace-scoped prototype status canvas | Node syntax checks, 4 status parser tests, HTTP assets/status API, canvas discovery/action, and same-instance reopen all pass |
+| 2026-11-06 | Restored horizontal kanban navigation | Four side-by-side columns scroll within the board; scrollbar and Previous/Next controls work at narrow widths, with no page-level horizontal overflow from 360px to 1000px |
+| 2026-11-06 | Clarified card movement and temporarily stacked columns (superseded) | UI explains Destination + Move card; stacking was replaced with the horizontally scrollable board |
+| 2026-11-06 | Replaced the status snapshot with a bidirectional prototype kanban board | Board CRUD, persistence, invalid-data protection, concurrent writes, browser UI, and agent actions verified |
+| 2026-11-06 | Removed required input from canvas opening | Canvas discovery has no input schema and opens without caller-supplied workspace data |
+| 2026-11-06 | Added initial read-only prototype status canvas (superseded by kanban board) | Node syntax checks, parser tests, HTTP assets/status endpoint, canvas discovery, and same-instance reopen passed |
 | 2026-11-06 | Added multi-entry journaling and custom categories | Production build, legacy-entry migration, and reducer checks for multiple entries, editing, and category deletion pass |
 | 2026-11-06 | Simplified Journal date navigation | Production build and `git diff --check` pass |
 | 2026-11-06 | Added standalone dated journaling | Production build, reducer/document compatibility checks, and `git diff --check` pass |

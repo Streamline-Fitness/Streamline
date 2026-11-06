@@ -9,6 +9,7 @@ This directory contains detailed project information that should be loaded only 
 | Understand the original product requirements | `requirements/Training Log iOS App Spec v2.md` |
 | Make a structural or architectural change | `PROTOTYPE_ARCHITECTURE.md` |
 | Find the current implementation state or next slice | `PROTOTYPE_STATUS.md` |
+| Manage prototype work in the Copilot kanban canvas | `PROTOTYPE_BOARD.json` |
 | Change product behavior, data shape, scope, or architecture | `DESIGN_DECISIONS.md` |
 | Verify a completed workflow | `PROTOTYPE_ARCHITECTURE.md` acceptance walkthrough |
 
@@ -19,6 +20,10 @@ This directory contains detailed project information that should be loaded only 
 - Append meaningful decisions to `docs/DESIGN_DECISIONS.md`; do not silently rewrite history.
 - Update `docs/PROTOTYPE_ARCHITECTURE.md` when the prototype boundary, module structure, domain model, or build order changes.
 - Keep source documents in their appropriate subdirectory rather than adding more large files to the repository root.
+
+## Copilot kanban board
+
+Open **Training Log Kanban Board** from the Copilot canvas picker. Add work in the form above the board. The four columns remain side by side; scroll horizontally using a trackpad/shift-wheel, the scrollbar at the board's bottom, or its Previous/Next buttons. Move cards by dragging them to another column, or choose a **Destination** from the card's dropdown and click **Move card**. Expand **Edit card** to change its title or description; use **Delete card** to remove it. Changes are saved to `PROTOTYPE_BOARD.json` in this directory. The agent can view and update the same cards with `list-board`, `create-card`, `update-card`, `move-card`, and `delete-card`; open board panels pick up those edits automatically.
 
 ## Current documentation map
 
