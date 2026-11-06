@@ -15,12 +15,13 @@ import { SessionSummaryScreen } from "./screens/SessionSummaryScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { WeeklyReviewScreen } from "./screens/WeeklyReviewScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
+import { JournalScreen } from "./screens/JournalScreen";
 import { AuthScreen } from "./screens/AuthScreen";
 import "./styles/prototype.css";
 
-function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "settings" | "review" | "history" {
+function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "settings" | "review" | "history" | "journal" {
   const route = window.location.hash.replace("#", "");
-  return route === "plan-editor" || route === "today" || route === "summary" || route === "settings" || route === "review" || route === "history" ? route : "today";
+  return route === "plan-editor" || route === "today" || route === "summary" || route === "settings" || route === "review" || route === "history" || route === "journal" ? route : "today";
 }
 
 function AuthGate({ client }: { client: NonNullable<typeof supabase> }) {
@@ -82,6 +83,7 @@ function AuthenticatedApp({ client, session }: { client: NonNullable<typeof supa
   const [saveError, setSaveError] = useState("");
   const [saveCanRetry, setSaveCanRetry] = useState(false);
   const [syncStatus, setSyncStatus] = useState("Loading account data…");
+  const [journalDirty, setJournalDirty] = useState(false);
   const [recoveryDraft, setRecoveryDraft] = useState<RecoveryDraft>();
   const [recoveryConflict, setRecoveryConflict] = useState(false);
   const version = useRef(0);
@@ -91,6 +93,18 @@ function AuthenticatedApp({ client, session }: { client: NonNullable<typeof supa
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const latestState = useRef(state);
   latestState.current = state;
+
+  function navigateDispatch(action: Action) {
+    if (action.type === "NAVIGATE" && state.route === "journal" && journalDirty) {
+      if (!window.confirm("You have unsaved journal changes. Leave without saving them?")) {
+        window.history.replaceState(null, "", `#${state.route}`);
+        return;
+      }
+      setJournalDirty(false);
+    }
+    dispatch(action);
+    if (action.type === "NAVIGATE") window.history.replaceState(null, "", `#${action.route}`);
+  }
 
   useEffect(() => {
     let active = true;
@@ -179,10 +193,20 @@ function AuthenticatedApp({ client, session }: { client: NonNullable<typeof supa
   }, [loadAttempt, session.user.id]);
 
   useEffect(() => {
-    const onHashChange = () => dispatch({ type: "NAVIGATE", route: routeFromHash() });
+    const onHashChange = () => navigateDispatch({ type: "NAVIGATE", route: routeFromHash() });
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
+  }, [state.route, journalDirty]);
+
+  useEffect(() => {
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!journalDirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [journalDirty]);
 
   function enqueueSave(data: typeof state.data): Promise<void> {
     const snapshot = structuredClone(data);
@@ -292,15 +316,10 @@ function AuthenticatedApp({ client, session }: { client: NonNullable<typeof supa
     return true;
   }
 
-  const navigateDispatch = (action: Action) => {
-    dispatch(action);
-    if (action.type === "NAVIGATE") window.history.replaceState(null, "", `#${action.route}`);
-  };
-
   if (loadError) return <main className="auth-page"><section className="auth-card"><h1>Could not load your account</h1><p className="error-banner" role="alert">{loadError}</p><button className="button primary" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Try again</button></section></main>;
   if (!state.hydrated) return <main className="auth-page"><p role="status">Loading your training data…</p></main>;
 
-  const screen = state.route === "plans" ? <PlansScreen state={state} dispatch={navigateDispatch} /> : state.route === "plan-editor" ? <PlanEditorScreen state={state} dispatch={navigateDispatch} /> : state.route === "today" ? <TodayScreen state={state} dispatch={navigateDispatch} /> : state.route === "settings" ? <SettingsScreen state={state} dispatch={navigateDispatch} /> : state.route === "review" ? <WeeklyReviewScreen state={state} dispatch={navigateDispatch} /> : state.route === "history" ? <HistoryScreen state={state} dispatch={navigateDispatch} /> : <SessionSummaryScreen state={state} dispatch={navigateDispatch} />;
+  const screen = state.route === "plans" ? <PlansScreen state={state} dispatch={navigateDispatch} /> : state.route === "plan-editor" ? <PlanEditorScreen state={state} dispatch={navigateDispatch} /> : state.route === "today" ? <TodayScreen state={state} dispatch={navigateDispatch} /> : state.route === "settings" ? <SettingsScreen state={state} dispatch={navigateDispatch} /> : state.route === "review" ? <WeeklyReviewScreen state={state} dispatch={navigateDispatch} /> : state.route === "history" ? <HistoryScreen state={state} dispatch={navigateDispatch} /> : state.route === "journal" ? <JournalScreen state={state} dispatch={navigateDispatch} onDraftStatusChange={setJournalDirty} /> : <SessionSummaryScreen state={state} dispatch={navigateDispatch} />;
   return <AppShell
     state={state}
     dispatch={navigateDispatch}

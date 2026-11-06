@@ -173,6 +173,19 @@ export type WeeklyReview = {
   isStale: boolean;
 };
 
+export type JournalEntry = {
+  id: ID;
+  date: ISODate;
+  text: string;
+  categoryId?: ID;
+  updatedAt: number;
+};
+
+export type JournalCategory = {
+  id: ID;
+  name: string;
+};
+
 export type Settings = {
   defaultLeadInS: number;
   transitionS: number;
@@ -193,6 +206,8 @@ export type DataDocument = {
   setEntries: Record<ID, SetEntry>;
   skippedBlocks: Record<ID, SkippedBlock>;
   weeklyReviews: Record<ISODate, WeeklyReview>;
+  journalEntries: Record<ID, JournalEntry>;
+  journalCategories: Record<ID, JournalCategory>;
   settings: Settings;
 };
 
