@@ -106,10 +106,14 @@ training-log-prototype/
 │  │  ├─ supabaseClient.ts # configured Supabase client
 │  │  ├─ supabaseRepository.ts # per-user cloud document adapter
 │  │  ├─ recoveryDraft.ts # temporary backup for unsynced writes
+│  │  ├─ recoveryDraft.test.ts # recovery storage regression tests
 │  │  └─ document.ts      # persisted document validation
 │  ├─ features/
-│  │  └─ auth/
-│  │     └─ AuthGate.tsx  # authentication state and sign-in boundary
+│  │  ├─ auth/
+│  │  │  └─ AuthGate.tsx  # authentication state and sign-in boundary
+│  │  └─ accountData/
+│  │     ├─ accountDataSync.ts      # load/save queue and recovery workflow
+│  │     └─ accountDataSync.test.ts # sync and recovery regression tests
 │  ├─ screens/
 │  │  ├─ AuthScreen.tsx    # email-code and password sign-in
 │  │  ├─ TodayScreen.tsx
@@ -148,6 +152,7 @@ Before Slice 1 begins, the corresponding `src/` directories are scaffolded in th
 - `state/` contains application state and reducer transitions.
 - `storage/` contains persistence interfaces and browser adapters.
 - `storage/recoveryDraft.ts` keeps a user-scoped browser recovery copy only while cloud changes are unsynced; Supabase remains authoritative.
+- `features/accountData/` coordinates account-document loading, versioned saves, and recovery without owning UI or Supabase implementation details.
 - `screens/` contains route-level compositions.
 - `features/` contains cohesive workflow boundaries that coordinate UI with services; move existing flows incrementally rather than duplicating domain rules.
 - `ui/` contains reusable visual modules that do not own business rules.

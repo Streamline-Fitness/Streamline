@@ -693,3 +693,11 @@ These remain open unless a later entry resolves them:
 - **Decision:** Improve maintainability incrementally: add regression tests around pure domain and reducer behavior before extracting cohesive feature boundaries. Keep domain rules and persisted data contracts stable during structural refactors.
 - **Why:** The reducer, account synchronization, and training history contain behavior where regressions could affect user data. Tests make future modularization safer without forcing a high-risk rewrite.
 - **Consequence:** Feature boundaries may be introduced gradually. Existing behavior and state contracts remain in place until a tested change justifies evolving them.
+
+## D-084 — Isolate account-data synchronization from app composition
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Coordinate account document loading, optimistic-version saves, and local recovery drafts in a dedicated account-data feature service. Keep browser storage behind the recovery-draft adapter and inject repository/storage dependencies for tests.
+- **Why:** `App.tsx` should compose screens and app-level effects rather than directly own a complex save queue and recovery/conflict workflow. The behavior must remain testable without a live Supabase account or browser storage.
+- **Consequence:** Supabase remains the authoritative source of data; local drafts remain a recovery buffer only. The existing per-user format, conflict handling, and user-facing recovery actions are preserved.

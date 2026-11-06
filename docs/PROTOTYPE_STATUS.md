@@ -13,6 +13,7 @@
 
 ## Completed
 
+- Added a workspace-scoped Copilot canvas that presents prototype status and its next milestone from this document, with a refresh action.
 - Read and reviewed `docs/requirements/Training Log iOS App Spec v2.md`.
 - Defined the browser prototype boundary in `docs/PROTOTYPE_ARCHITECTURE.md`.
 - Defined the prototype's domain records, reducer seam, timer semantics, screens, build slices, and acceptance walkthrough.
@@ -37,6 +38,7 @@
 - Added Vitest regression coverage for plan scheduling/snapshots, session progression/status, and critical reducer transitions.
 - Extracted authentication and sign-in state handling from the app composition into a focused `features/auth/AuthGate.tsx` boundary without changing the authentication flow.
 - Moved the typed action contract into `state/actions.ts` and isolated journal transitions in `state/journalReducer.ts`; the root reducer delegates those actions while existing call sites and behavior remain compatible.
+- Added recovery-draft storage tests and account-sync tests for version conflicts, offline recovery, retry/clear behavior, and cancelled loads; extracted that coordination to `features/accountData/accountDataSync.ts` so `App.tsx` composes the service rather than owning its persistence workflow.
 - Compact target ranges now display equal values once (for example, `60 sec` instead of `60–60 sec`).
 - Add-exercise controls now start blank with placeholders and require an explicit exercise and valid target range before adding.
 - Custom exercise creation and library editing now include category, metric, pattern, skill ID, lead-in, and default hold fields.
@@ -117,6 +119,7 @@ Configure GitHub Pages, the two browser-safe Supabase Actions variables, and the
 
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-11-06 | Added workspace-scoped prototype status canvas | Node syntax checks, 4 status parser tests, HTTP assets/status API, canvas discovery/action, and same-instance reopen all pass |
 | 2026-11-06 | Added multi-entry journaling and custom categories | Production build, legacy-entry migration, and reducer checks for multiple entries, editing, and category deletion pass |
 | 2026-11-06 | Simplified Journal date navigation | Production build and `git diff --check` pass |
 | 2026-11-06 | Added standalone dated journaling | Production build, reducer/document compatibility checks, and `git diff --check` pass |

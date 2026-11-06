@@ -1,10 +1,8 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { createSeedData } from "./domain/seed";
+import { AccountDataSync, initialAccountDataSyncState } from "./features/accountData/accountDataSync";
 import { AuthGate } from "./features/auth/AuthGate";
 import { supabase, type AppSupabaseClient } from "./storage/supabaseClient";
-import { supabaseRepository } from "./storage/supabaseRepository";
-import { clearRecoveryDraft, readRecoveryDraft, recoveryDraftMatches, writeRecoveryDraft, type RecoveryDraft } from "./storage/recoveryDraft";
 import { createInitialState } from "./state/appState";
 import { reducer, type Action } from "./state/reducer";
 import { AppShell } from "./ui/AppShell";
@@ -26,21 +24,16 @@ function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "setti
 
 function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; session: Session }) {
   const [state, dispatch] = useReducer(reducer, undefined, () => ({ ...createInitialState(), route: routeFromHash() }));
-  const [loadError, setLoadError] = useState("");
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [saveError, setSaveError] = useState("");
-  const [saveCanRetry, setSaveCanRetry] = useState(false);
-  const [syncStatus, setSyncStatus] = useState("Loading account data…");
+  const [accountSyncState, setAccountSyncState] = useState(initialAccountDataSyncState);
   const [journalDirty, setJournalDirty] = useState(false);
-  const [recoveryDraft, setRecoveryDraft] = useState<RecoveryDraft>();
-  const [recoveryConflict, setRecoveryConflict] = useState(false);
-  const version = useRef(0);
-  const writeBlocked = useRef(false);
-  const recoveryConflictRef = useRef(false);
-  const recoveryBaseVersion = useRef<number | null>(null);
-  const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const latestState = useRef(state);
   latestState.current = state;
+  const accountSync = useMemo(() => new AccountDataSync(session.user.id, {
+    onHydrate: (data) => dispatch({ type: "HYDRATE", data }),
+    onStateChange: setAccountSyncState,
+  }), [session.user.id]);
+  const { loadError, saveError, saveCanRetry, syncStatus, recoveryDraft, recoveryConflict } = accountSyncState;
 
   function navigateDispatch(action: Action) {
     if (action.type === "NAVIGATE" && state.route === "journal" && journalDirty) {
@@ -55,90 +48,9 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
   }
 
   useEffect(() => {
-    let active = true;
-    setLoadError("");
-    setSyncStatus("Loading account data…");
-    void supabaseRepository.load(session.user.id).then((stored) => {
-      if (!active) return;
-      const serverVersion = stored?.version ?? 0;
-      const serverData = stored?.data ?? createSeedData();
-      version.current = serverVersion;
-      writeBlocked.current = false;
-      let pendingDraft: RecoveryDraft | null;
-      try {
-        pendingDraft = readRecoveryDraft(session.user.id);
-      } catch (error) {
-        writeBlocked.current = true;
-        recoveryConflictRef.current = true;
-        setRecoveryConflict(true);
-        const message = error instanceof Error ? error.message : "Could not read the on-device recovery copy.";
-        setSaveError(`${message} Cloud data was not changed. Keep this tab open and do not clear browser data.`);
-        setSyncStatus("Recovery copy needs attention");
-        dispatch({ type: "HYDRATE", data: serverData });
-        return;
-      }
-      if (pendingDraft && !recoveryDraftMatches(pendingDraft, serverData)) {
-        recoveryBaseVersion.current = pendingDraft.expectedVersion;
-        setRecoveryDraft(pendingDraft);
-        if (pendingDraft.expectedVersion === serverVersion) {
-          recoveryConflictRef.current = false;
-          setRecoveryConflict(false);
-          dispatch({ type: "HYDRATE", data: pendingDraft.data });
-          return;
-        }
-        writeBlocked.current = true;
-        recoveryConflictRef.current = true;
-        setRecoveryConflict(true);
-        setSaveError("This device has unsynced training changes, but your cloud data has since changed. Download the recovery copy before continuing; it has not been merged or overwritten.");
-        setSyncStatus("Recovery copy needs attention");
-        dispatch({ type: "HYDRATE", data: pendingDraft.data });
-        return;
-      }
-
-      let cleanupWarning = "";
-      if (pendingDraft) {
-        try {
-          clearRecoveryDraft(session.user.id);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Could not clear the on-device recovery copy.";
-          cleanupWarning = `Your cloud data is current, but ${message}`;
-        }
-      }
-      setRecoveryDraft(undefined);
-      recoveryBaseVersion.current = null;
-      recoveryConflictRef.current = false;
-      setRecoveryConflict(false);
-      setSaveError(cleanupWarning);
-      setSaveCanRetry(false);
-      dispatch({ type: "HYDRATE", data: serverData });
-    }).catch((error: unknown) => {
-      if (!active) return;
-      const message = error instanceof Error ? error.message : "Could not load your account data.";
-      let pendingDraft: RecoveryDraft | null;
-      try {
-        pendingDraft = readRecoveryDraft(session.user.id);
-      } catch (recoveryError) {
-        const recoveryMessage = recoveryError instanceof Error ? recoveryError.message : "Could not read the on-device recovery copy.";
-        setLoadError(`${message} ${recoveryMessage}`);
-        return;
-      }
-      if (pendingDraft) {
-        version.current = pendingDraft.expectedVersion;
-        recoveryBaseVersion.current = pendingDraft.expectedVersion;
-        writeBlocked.current = true;
-        recoveryConflictRef.current = false;
-        setRecoveryConflict(false);
-        setRecoveryDraft(pendingDraft);
-        setSaveCanRetry(true);
-        setSaveError(`${message} Your unsynced recovery copy has been opened on this device. Reconnect and retry to save it to your account.`);
-        setSyncStatus("Unsynced recovery copy loaded");
-        dispatch({ type: "HYDRATE", data: pendingDraft.data });
-        return;
-      }
-      setLoadError(message);
-    });
-    return () => { active = false; };
-  }, [loadAttempt, session.user.id]);
+    const loading = accountSync.load();
+    return loading.cancel;
+  }, [accountSync, loadAttempt]);
 
   useEffect(() => {
     const onHashChange = () => navigateDispatch({ type: "NAVIGATE", route: routeFromHash() });
@@ -156,76 +68,8 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [journalDirty]);
 
-  function enqueueSave(data: typeof state.data): Promise<void> {
-    const snapshot = structuredClone(data);
-    saveQueue.current = saveQueue.current.then(async () => {
-      if (writeBlocked.current) {
-        const pendingDraft: RecoveryDraft = {
-          data: snapshot,
-          expectedVersion: recoveryBaseVersion.current ?? version.current,
-          savedAt: Date.now(),
-        };
-        try {
-          writeRecoveryDraft(session.user.id, pendingDraft);
-          recoveryBaseVersion.current = pendingDraft.expectedVersion;
-          setRecoveryDraft(pendingDraft);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Could not update the on-device recovery copy.";
-          setSaveError((current) => `${current} ${message} Keep this tab open.`);
-        }
-        return;
-      }
-      setSyncStatus("Saving…");
-      const pendingDraft: RecoveryDraft = { data: snapshot, expectedVersion: version.current, savedAt: Date.now() };
-      let recoveryCopySaved = false;
-      let recoveryCopyError = "";
-      try {
-        writeRecoveryDraft(session.user.id, pendingDraft);
-        recoveryBaseVersion.current = pendingDraft.expectedVersion;
-        recoveryCopySaved = true;
-        setRecoveryDraft(pendingDraft);
-      } catch (error) {
-        recoveryCopyError = error instanceof Error ? error.message : "Could not create an on-device recovery copy.";
-      }
-
-      try {
-        version.current = await supabaseRepository.save(session.user.id, snapshot, version.current);
-        if (recoveryCopySaved) {
-          try {
-            clearRecoveryDraft(session.user.id);
-            recoveryBaseVersion.current = null;
-            setRecoveryDraft(undefined);
-          } catch (error) {
-            const message = error instanceof Error ? error.message : "Could not clear the on-device recovery copy.";
-            setSaveError(`Your data was saved to your account. ${message}`);
-            setSaveCanRetry(false);
-            setSyncStatus("Saved to account; local copy remains");
-            return;
-          }
-        }
-        setSaveError(recoveryCopyError ? `Your data was saved to your account, but ${recoveryCopyError}` : "");
-        setSaveCanRetry(false);
-        setSyncStatus(recoveryCopyError ? "Saved to account; local backup unavailable" : "Saved to your account");
-      } catch (error) {
-        writeBlocked.current = true;
-        const message = error instanceof Error ? error.message : "Could not save your training data.";
-        const conflict = message.includes("changed in another session");
-        recoveryConflictRef.current = conflict;
-        setRecoveryConflict(conflict);
-        setSaveCanRetry(!conflict);
-        setSaveError(`${message}${recoveryCopySaved ? " Your unsynced changes are saved in this browser." : ` ${recoveryCopyError} Keep this tab open and retry.`}`);
-        setSyncStatus(conflict ? "Recovery copy needs attention" : "Not saved — retry");
-      }
-    });
-    return saveQueue.current;
-  }
-
   function retrySave() {
-    if (recoveryConflictRef.current) return;
-    writeBlocked.current = false;
-    setSaveError("");
-    setSaveCanRetry(false);
-    void enqueueSave(latestState.current.data);
+    accountSync.retrySave(latestState.current.data);
   }
 
   function downloadRecoveryCopy() {
@@ -241,15 +85,15 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
 
   useEffect(() => {
     const onOnline = () => {
-      if (writeBlocked.current && !recoveryConflictRef.current) retrySave();
+      if (accountSync.canAutoRetry) retrySave();
     };
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
-  }, [session.user.id]);
+  }, [accountSync]);
 
   useEffect(() => {
-    if (state.hydrated) void enqueueSave(state.data);
-  }, [state.data, state.hydrated, session.user.id]);
+    if (state.hydrated) void accountSync.enqueueSave(state.data);
+  }, [accountSync, state.data, state.hydrated]);
 
   useEffect(() => {
     const hash = `#${state.route}`;
@@ -257,8 +101,8 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
   }, [state.route]);
 
   async function signOut() {
-    await enqueueSave(latestState.current.data);
-    if (writeBlocked.current && !window.confirm("Your latest training changes could not be saved to your account. Sign out anyway? The latest copy is saved in this browser when available.")) return false;
+    await accountSync.enqueueSave(latestState.current.data);
+    if (accountSync.isWriteBlocked && !window.confirm("Your latest training changes could not be saved to your account. Sign out anyway? The latest copy is saved in this browser when available.")) return false;
     const { error } = await client.auth.signOut();
     if (error) throw new Error(`Could not sign out: ${error.message}`);
     return true;

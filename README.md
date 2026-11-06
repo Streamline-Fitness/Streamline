@@ -297,11 +297,16 @@ training-log-prototype/
    ├─ storage/
    │  ├─ database.types.ts
    │  ├─ document.ts
+   │  ├─ recoveryDraft.ts
+   │  ├─ recoveryDraft.test.ts
    │  ├─ supabaseClient.ts
    │  └─ supabaseRepository.ts
    ├─ features/
-   │  └─ auth/
-   │     └─ AuthGate.tsx
+   │  ├─ auth/
+   │  │  └─ AuthGate.tsx
+   │  └─ accountData/
+   │     ├─ accountDataSync.ts
+   │     └─ accountDataSync.test.ts
    ├─ screens/
    │  ├─ AuthScreen.tsx
    │  ├─ TodayScreen.tsx
@@ -323,9 +328,10 @@ The source is organized by responsibility:
 
 - **`domain/`** contains data types, seed data, selectors, and pure training rules.
 - **`state/`** contains application state, the typed action contract, and root/feature reducers.
-- **`storage/`** contains the Supabase client, persisted-document validation, and account repository.
+- **`storage/`** contains the Supabase client, persisted-document validation, account repository, and recovery-draft adapter.
+- **`features/accountData/`** coordinates loading, versioned saves, and recovery while keeping `App.tsx` focused on composition.
 - **`screens/`** contains route-level screen compositions.
-- **`features/`** contains cohesive workflow boundaries; the auth gate is the first extracted feature.
+- **`features/`** contains cohesive workflow boundaries such as authentication and account-data synchronization.
 - **`ui/`** contains reusable visual components.
 - **`styles/`** contains the plain CSS for the prototype.
 - Pure domain rules and reducer transitions have colocated regression tests. Run them with `npm test`.
