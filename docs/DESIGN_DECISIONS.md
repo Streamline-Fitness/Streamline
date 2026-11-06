@@ -638,6 +638,14 @@ These remain open unless a later entry resolves them:
 - **Why:** Timed sets and stretches should not begin counting down or consuming the lead-in before the user is ready.
 - **Consequence:** Automatic transitions may select the next timed exercise but never start its timer. Explicit Start remains the only transition into preparation.
 
+## D-078 — Keep journaling independent of workouts
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Add a dedicated Journal area with one editable entry per calendar date. Store it separately from workout notes and weekly reviews in the account's data document.
+- **Why:** The user wants a place to journal, including on days without a workout, without conflating a general reflection with session-specific notes or the structured weekly check-in.
+- **Consequence:** Journal entries can be browsed by date and remain available across reloads through account-backed storage. Existing version-1 documents without journal data load with an empty entry collection.
+
 ## D-078 — Start sessions only on the current local day
 
 - **Status:** Accepted
@@ -661,3 +669,19 @@ These remain open unless a later entry resolves them:
 - **Decision:** Request the current app base URL as the redirect for sign-up confirmation and password-recovery emails.
 - **Why:** Relying on Supabase's Site URL fallback can send hosted users to a localhost development URL.
 - **Consequence:** Each live app URL must be included in Supabase's allowed redirect URLs; the configured Site URL remains the fallback.
+
+## D-081 — Open the journal on today without a date picker
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Open Journal directly to today's entry. Reach older entries through the archive rather than a separate date selector; provide a direct return to today's entry while viewing an older one.
+- **Why:** The user found a date selector unnecessary for writing a journal entry.
+- **Consequence:** New entries are written for today by default. Existing entries remain editable from the archive.
+
+## D-082 — Support multiple categorized journal entries per day
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Allow any number of journal entries per date. Each entry has one user-defined category and remains fully readable and editable in the archive.
+- **Why:** The user wants to record multiple thoughts in a day, organize them under categories they define, and view/edit each complete entry.
+- **Consequence:** Entries are stored by unique ID rather than date. Deleting a category keeps its entries and text but removes that category assignment. Older single-entry-per-day records are upgraded during document loading.

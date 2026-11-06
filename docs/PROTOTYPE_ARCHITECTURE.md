@@ -34,6 +34,7 @@ The web-first prototype must make these requirements interactive:
 - After finishing, Today renders the full completed summary in place for that date; it does not replace it with a generic saved-session card and plan accordions.
 - Timer milestones provide browser sound cues for hold start, hold completion, rest start, and rest completion when the browser permits audio.
 - A history screen can inspect and edit prior sessions.
+- A journal screen supports multiple entries per day, user-defined categories, and full-text viewing and editing from the entry archive.
 - Sunday review drafts from the week, can be saved, and becomes stale after later edits.
 - Analytics render from actual stored records: hold trend, strength trend, hard sets, consistency, session length, benchmark, mobility, and PRs.
 - Users sign in with passwords and recover access by email; each account's training data is isolated by Postgres row-level security.
@@ -108,6 +109,7 @@ training-log-prototype/
 │  │  ├─ PlanEditorScreen.tsx
 │  │  ├─ SessionSummaryScreen.tsx
 │  │  ├─ HistoryScreen.tsx
+│  │  ├─ JournalScreen.tsx
 │  │  ├─ AnalyticsScreen.tsx
 │  │  ├─ ReviewScreen.tsx
 │  │  └─ SettingsScreen.tsx
@@ -294,6 +296,19 @@ type WeeklyReview = {
   isStale: boolean;
 };
 
+type JournalEntry = {
+  id: ID;
+  date: ISODate;
+  text: string;
+  categoryId?: ID;
+  updatedAt: number;
+};
+
+type JournalCategory = {
+  id: ID;
+  name: string;
+};
+
 type Settings = {
   defaultLeadInS: number;
   transitionS: number;
@@ -382,9 +397,11 @@ type AppState = {
     sessions: Record<ID, Session>;
     setEntries: Record<ID, SetEntry>;
     weeklyReviews: Record<ISODate, WeeklyReview>;
+    journalEntries: Record<ID, JournalEntry>;
+    journalCategories: Record<ID, JournalCategory>;
     settings: Settings;
   };
-  route: "today" | "summary" | "history" | "analytics" | "review" | "settings";
+  route: "today" | "summary" | "history" | "analytics" | "review" | "settings" | "journal";
   selectedDate: ISODate;
   activeSessionId?: ID;
   timer: TimerState;
@@ -665,6 +682,7 @@ The prototype is useful when a reviewer can perform this walkthrough without con
 15. Simulate a failed save, confirm the recovery copy is retried after reconnect, and confirm a version conflict offers a download without overwriting newer cloud data.
 16. Complete one round of a superset and confirm the paired exercises alternate without rest, then rest begins before the next round.
 17. Browse to a past or future planned day and confirm there is no Start session action; return to today and confirm today's workout can start.
+18. Create journal categories, save and edit multiple entries for one day, view their full text in the archive, and confirm they persist after refresh.
 
 If any step feels awkward, the prototype has found a product or state-model problem before SwiftUI work begins.
 

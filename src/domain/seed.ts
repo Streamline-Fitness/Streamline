@@ -192,6 +192,8 @@ export function createSeedData(): DataDocument {
     setEntries: {},
     skippedBlocks: {},
     weeklyReviews: {},
+    journalEntries: {},
+    journalCategories: {},
     settings: {
       defaultLeadInS: 3,
       transitionS: 5,

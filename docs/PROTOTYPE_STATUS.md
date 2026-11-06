@@ -5,11 +5,11 @@
 ## Current state
 
 - **Overall phase:** Implementation
-- **Current slice:** Web accounts and cloud persistence
+- **Current slice:** Web accounts, cloud persistence, and journaling
 - **Next implementation slice:** Complete the first GitHub Pages deployment, verify hosted sign-in and password recovery, then continue with PRs and richer analytics
 - **Prototype runnable:** Yes — configure Supabase as described in `README.md`, then run `npm install` and `npm run dev`
 - **Hosting:** GitHub Pages deployment workflow is configured; first deployment still requires repository Pages settings, Supabase Actions variables, and hosted Auth redirect configuration.
-- **Last updated:** 2026-11-04
+- **Last updated:** 2026-11-06
 
 ## Completed
 
@@ -21,6 +21,8 @@
 - Replaced the initial lower-body demo routine with the supplied Monday-Sunday weekly training template, including active/passive mobility and progression tests.
 - Seeded Sunday as a rest day with weekly reflection enabled; plan days can independently enable reflection when marked as rest days.
 - Added a weekly reflection screen with a Monday-Sunday activity summary, editable reflection and next-week goal, persistence, and stale-review state when the week's sessions change.
+- Added a standalone Journal section with multiple entries per day, user-defined categories, full-text archive display/editing, unsaved-change protection, and account-backed persistence independent of workouts and weekly reviews.
+- Simplified Journal date handling: open today's entry by default and access previous entries from the archive without a date selector.
 - Scaffolded the Vite + React + TypeScript application.
 - Implemented the first plan-authoring flow: plans, training days, blocks, exercise targets, side mode, custom exercises, and active-plan selection.
 - Implemented Today plan preview, rep logging, previous-result display, session finish, summary editing, and local browser persistence.
@@ -111,6 +113,9 @@ Configure GitHub Pages, the two browser-safe Supabase Actions variables, and the
 
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-11-06 | Added multi-entry journaling and custom categories | Production build, legacy-entry migration, and reducer checks for multiple entries, editing, and category deletion pass |
+| 2026-11-06 | Simplified Journal date navigation | Production build and `git diff --check` pass |
+| 2026-11-06 | Added standalone dated journaling | Production build, reducer/document compatibility checks, and `git diff --check` pass |
 | 2026-11-06 | Route sign-up confirmation emails to the current app URL | `npm.cmd run build` and `git diff --check` pass; live Supabase redirect allowlist still needs verification |
 | 2026-11-04 | Added discard for accidentally started in-progress sessions | Production build and targeted reducer cascade/protection checks pass; browser walkthrough pending |
 | 2026-11-04 | Restrict starting new sessions to the current local day | Production build, reducer date-guard checks, and `git diff --check` pass; browser walkthrough pending |

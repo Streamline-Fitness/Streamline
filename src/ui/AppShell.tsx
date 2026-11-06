@@ -32,6 +32,7 @@ export function AppShell({ state, dispatch, children, userEmail, syncStatus, onS
         <button className={state.route === "plans" || state.route === "plan-editor" ? "nav-button active" : "nav-button"} onClick={() => nav("plans")}>Plans</button>
         <button className={state.route === "today" || state.route === "review" ? "nav-button active" : "nav-button"} onClick={() => nav("today")}>Today</button>
         <button className={state.route === "history" ? "nav-button active" : "nav-button"} onClick={() => nav("history")}>History</button>
+        <button className={state.route === "journal" ? "nav-button active" : "nav-button"} onClick={() => nav("journal")}>Journal</button>
       </nav>
       <main className="page-content">{children}</main>
     </div>
