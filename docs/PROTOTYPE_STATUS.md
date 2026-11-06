@@ -33,6 +33,7 @@
 - Restored the plan's actual name as the Plan Editor heading and added an editable exercise-library section.
 - Changed the exercise library to a dropdown with one focused exercise editor instead of showing all exercise forms at once.
 - Added contextual tooltips and accessible labels to compact, icon, date, plan, block, target, and exercise-library controls.
+- Added a custom dumbbell-style favicon matching the prototype's training-log brand and wired it into the app shell.
 - Compact target ranges now display equal values once (for example, `60 sec` instead of `60–60 sec`).
 - Add-exercise controls now start blank with placeholders and require an explicit exercise and valid target range before adding.
 - Custom exercise creation and library editing now include category, metric, pattern, skill ID, lead-in, and default hold fields.
