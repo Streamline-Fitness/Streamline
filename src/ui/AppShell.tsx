@@ -19,7 +19,7 @@ export function AppShell({ state, dispatch, children, userEmail, syncStatus, onS
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <div className="eyebrow">TRAINING LOG</div>
+          <div className="eyebrow">STREAMLINE FITNESS</div>
           <h1>Make the work visible.</h1>
         </div>
         <div className="account-toolbar">

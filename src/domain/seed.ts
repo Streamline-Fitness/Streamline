@@ -70,7 +70,7 @@ const exercises: Exercise[] = [
 const demoPlan: Plan = {
   id: "plan_demo_weekly_template",
   name: "Weekly Training Template",
-  description: "Commonly tight areas include the hamstrings, hip flexors, upper trapezius, calves, and erector spinae. Do active stretches before workouts and passive stretches before progressions. Take 2-3 minutes between progression exercises on Tuesday and Thursday. Sunday is a rest day with weekly reflection enabled. Session notes are recorded after each workout, and session time is calculated from its start and finish. The prototype does not yet enforce rest between progression blocks.",
+  description: "Commonly tight areas include the hamstrings, hip flexors, upper trapezius, calves, and erector spinae. Do active stretches before workouts and passive stretches before progressions. Take 2-3 minutes between progression exercises on Tuesday and Thursday. Sunday is a rest day with weekly reflection enabled. Session notes are recorded after each workout, and session time is calculated from its start and finish. Rest between progression blocks is not currently enforced.",
   isActive: true,
   createdAt: now,
   updatedAt: now,
