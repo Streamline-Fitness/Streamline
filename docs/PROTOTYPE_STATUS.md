@@ -9,7 +9,7 @@
 - **Next implementation slice:** Verify hosted sign-in, password recovery, and account-data isolation on the deployed site, then continue with PRs and richer analytics
 - **Prototype runnable:** Yes — configure Supabase as described in `README.md`, then run `npm install` and `npm run dev`
 - **Hosting:** GitHub Pages is live at [streamline-fitness.github.io/Streamline](https://streamline-fitness.github.io/Streamline/). The user confirmed the hosted site is working; hosted auth and account isolation still need verification.
-- **Last updated:** 2026-11-06
+- **Last updated:** 2026-11-07
 
 ## Completed
 
@@ -118,6 +118,7 @@ The user confirmed that GitHub Pages hosting is working. Verify hosted sign-in, 
 
 ## Verification history
 
+| 2026-11-07 | Added Google Search Console HTML verification file | The Vite build includes the unchanged file at the site root; the hosted URL becomes available after deployment |
 | Date | Change | Verification |
 | --- | --- | --- |
 | 2026-11-06 | GitHub Pages hosting confirmed working | User confirmed the deployed hosted app is working; hosted auth and account isolation remain to be verified |
