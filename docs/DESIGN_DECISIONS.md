@@ -741,3 +741,11 @@ These remain open unless a later entry resolves them:
 - **Decision:** Correlate board discussion replies to the submitted user-message ID through session events. If no assistant text arrives, the request fails visibly and the submitted text remains in the composer.
 - **Why:** Users should be able to recover from transient Copilot/session failures without retyping their work.
 - **Consequence:** Root assistant messages are matched by `originatingMessageId`; the listener waits for session completion, surfaces correlated errors or timeouts, and ignores unrelated/sub-agent events. The original message remains available to resubmit.
+
+## D-090 - Provide all experience plans and activate the user's starting level
+
+- **Status:** Accepted
+- **Date:** 2026-11-07
+- **Decision:** When an account has no saved training document or pending recovery copy, ask the user to choose beginner, intermediate, or advanced experience before saving starter data. Add all three editable bodyweight plans and activate the one matching the selected experience.
+- **Why:** New users should start with a relevant, manageable workout without restricting their access to the other available plans.
+- **Consequence:** Users can switch among all experience plans in Plans. Existing account data and recovery drafts are never replaced by onboarding. The demo seed remains for development and tests, while new accounts are saved only after plan generation.

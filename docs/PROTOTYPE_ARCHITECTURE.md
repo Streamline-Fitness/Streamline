@@ -88,6 +88,7 @@ training-log-prototype/
 │  ├─ domain/
 │  │  ├─ model.ts          # SwiftData-shaped records and value types
 │  │  ├─ seed.ts           # exercises, levels, and generic starter plan
+│  │  ├─ onboarding.ts     # experience-based first-account plan generation
 │  │  ├─ plan.ts           # plan/day/block selectors and target expansion
 │  │  ├─ plan.test.ts      # regression tests for plan rules
 │  │  ├─ session.ts        # pure session status and set operations
@@ -116,6 +117,7 @@ training-log-prototype/
 │  │     └─ accountDataSync.test.ts # sync and recovery regression tests
 │  ├─ screens/
 │  │  ├─ AuthScreen.tsx    # email-code and password sign-in
+│  │  ├─ OnboardingScreen.tsx # first-account training experience selection
 │  │  ├─ TodayScreen.tsx
 │  │  ├─ PlansScreen.tsx
 │  │  ├─ PlanEditorScreen.tsx
@@ -526,6 +528,10 @@ The sequence obtains stretches in `order`, records a completed stretch as a seco
 The prototype has a visible `Real time / Fast demo` control. Fast demo advances the injected clock without changing timer formulas, allowing a reviewer to exercise a 30-second hold or five-minute stretch sequence immediately. This is a prototype convenience, not a product feature.
 
 ## 9. Screen architecture
+
+### First-account onboarding
+
+Accounts without a saved training document are shown an experience-level choice before any starter data is saved. Onboarding adds editable beginner, intermediate, and advanced bodyweight plans to the account; the selected experience determines which one is active initially. Users can switch among all three in Plans. Existing cloud documents and recovered local drafts bypass onboarding unchanged. The shared demo plan remains available for local development and tests.
 
 ### Plans
 

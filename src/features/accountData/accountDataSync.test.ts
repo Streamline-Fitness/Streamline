@@ -23,6 +23,7 @@ function createHarness(options: {
   if (options.draft) recoveryDraftStore.write("user-one", options.draft);
 
   const hydrated: ReturnType<typeof seedData>[] = [];
+  const onboardingRequired: boolean[] = [];
   const saveCalls: Array<{ version: number; data: ReturnType<typeof seedData> }> = [];
   const repository = {
     load: vi.fn(async () => {
@@ -42,11 +43,14 @@ function createHarness(options: {
     repository,
     recoveryDraftStore,
     now: () => 1_800_000_000_100,
-    onHydrate: (data) => hydrated.push(data),
+    onHydrate: (data, state) => {
+      hydrated.push(data);
+      onboardingRequired.push(state?.needsOnboarding ?? false);
+    },
   });
   const load = sync.load();
 
-  return { recoveryDraftStore, hydrated, saveCalls, sync, load };
+  return { recoveryDraftStore, hydrated, onboardingRequired, saveCalls, sync, load };
 }
 
 function draft(data = seedData(), expectedVersion = 4): RecoveryDraft {
@@ -54,6 +58,25 @@ function draft(data = seedData(), expectedVersion = 4): RecoveryDraft {
 }
 
 describe("account data synchronization", () => {
+  it("marks an account without saved data for onboarding", async () => {
+    const { load, hydrated, onboardingRequired } = createHarness();
+
+    await load.completed;
+
+    expect(hydrated).toHaveLength(1);
+    expect(onboardingRequired).toEqual([true]);
+  });
+
+  it("does not onboard existing account data or a pending recovery copy", async () => {
+    const existing = createHarness({ serverData: seedData(), serverVersion: 1 });
+    await existing.load.completed;
+    const recovered = createHarness({ draft: draft(seedData(), 0) });
+    await recovered.load.completed;
+
+    expect(existing.onboardingRequired).toEqual([false]);
+    expect(recovered.onboardingRequired).toEqual([false]);
+  });
+
   it("hydrates a matching-version recovery draft and saves it against that version", async () => {
     const savedData = seedData();
     savedData.plans.plan_demo_weekly_template.name = "Recovered plan";

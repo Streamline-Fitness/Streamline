@@ -31,7 +31,7 @@ type Dependencies = {
   recoveryDraftStore?: RecoveryDraftStore;
   createSeedData?: typeof createSeedData;
   now?: () => number;
-  onHydrate: (data: DataDocument) => void;
+  onHydrate: (data: DataDocument, options?: { needsOnboarding: boolean }) => void;
   onStateChange?: (state: AccountDataSyncState) => void;
 };
 
@@ -115,8 +115,8 @@ export class AccountDataSync {
     this.onStateChange?.(this.state);
   }
 
-  private hydrate(data: DataDocument, isActive: () => boolean): void {
-    if (isActive()) this.onHydrate(data);
+  private hydrate(data: DataDocument, isActive: () => boolean, needsOnboarding = false): void {
+    if (isActive()) this.onHydrate(data, { needsOnboarding });
   }
 
   private async loadAccountData(isActive: () => boolean): Promise<void> {
@@ -205,7 +205,7 @@ export class AccountDataSync {
       saveError: cleanupWarning,
       saveCanRetry: false,
     });
-    this.hydrate(serverData, isActive);
+    this.hydrate(serverData, isActive, stored === null && pendingDraft === null);
   }
 
   private async saveSnapshot(snapshot: DataDocument): Promise<void> {

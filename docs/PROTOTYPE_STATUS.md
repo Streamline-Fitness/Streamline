@@ -36,6 +36,7 @@
 - Added contextual tooltips and accessible labels to compact, icon, date, plan, block, target, and exercise-library controls.
 - Added a custom dumbbell-style favicon matching the prototype's training-log brand and wired it into the app shell.
 - Updated the browser tab and app-shell brand to Streamline Fitness; retained the prototype disclosure while the web app remains a validation build.
+- Added first-account onboarding that asks for recent training experience, adds all three editable experience plans, and activates the selected level; existing cloud data and recovery copies bypass onboarding.
 - Added Vitest regression coverage for plan scheduling/snapshots, session progression/status, and critical reducer transitions.
 - Extracted authentication and sign-in state handling from the app composition into a focused `features/auth/AuthGate.tsx` boundary without changing the authentication flow.
 - Moved the typed action contract into `state/actions.ts` and isolated journal transitions in `state/journalReducer.ts`; the root reducer delegates those actions while existing call sites and behavior remain compatible.
@@ -118,9 +119,10 @@ The user confirmed that GitHub Pages hosting is working. Verify hosted sign-in, 
 
 ## Verification history
 
-| 2026-11-07 | Added Google Search Console HTML verification file | The Vite build includes the unchanged file at the site root; the hosted URL becomes available after deployment |
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-11-07 | Added experience-based starter plans to new accounts | All three starter plans are added and the selected level is activated; existing data/recovery flows remain unchanged |
+| 2026-11-07 | Added Google Search Console HTML verification file | The Vite build includes the unchanged file at the site root; the hosted URL becomes available after deployment |
 | 2026-11-06 | GitHub Pages hosting confirmed working | User confirmed the deployed hosted app is working; hosted auth and account isolation remain to be verified |
 | 2026-11-06 | Correlate board chat replies to their submitted session messages | Board chat now listens for root assistant messages matching the submitted message ID instead of relying on `sendAndWait`'s optional return value; response, early-event, no-response, session-error, and timeout tests pass. Browser failure simulation confirms the draft is retained; a live Copilot retry still needs an idle session |
 | 2026-11-06 | Replaced the horizontal kanban presentation with a compact searchable work list | At 320px, 440px, and 768px widths there is no page or list horizontal overflow; filtering reveals matching cards and expands status groups, utility panels start collapsed, and a temporary card successfully moved by drag/drop before being removed |

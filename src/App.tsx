@@ -15,6 +15,8 @@ import { SettingsScreen } from "./screens/SettingsScreen";
 import { WeeklyReviewScreen } from "./screens/WeeklyReviewScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
 import { JournalScreen } from "./screens/JournalScreen";
+import { OnboardingScreen } from "./screens/OnboardingScreen";
+import { createOnboardingPlans, type TrainingExperience } from "./domain/onboarding";
 import "./styles/prototype.css";
 
 function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "settings" | "review" | "history" | "journal" {
@@ -26,11 +28,15 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
   const [state, dispatch] = useReducer(reducer, undefined, () => ({ ...createInitialState(), route: routeFromHash() }));
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [accountSyncState, setAccountSyncState] = useState(initialAccountDataSyncState);
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [journalDirty, setJournalDirty] = useState(false);
   const latestState = useRef(state);
   latestState.current = state;
   const accountSync = useMemo(() => new AccountDataSync(session.user.id, {
-    onHydrate: (data) => dispatch({ type: "HYDRATE", data }),
+    onHydrate: (data, options) => {
+      setOnboardingRequired(options?.needsOnboarding ?? false);
+      dispatch({ type: "HYDRATE", data });
+    },
     onStateChange: setAccountSyncState,
   }), [session.user.id]);
   const { loadError, saveError, saveCanRetry, syncStatus, recoveryDraft, recoveryConflict } = accountSyncState;
@@ -92,8 +98,8 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
   }, [accountSync]);
 
   useEffect(() => {
-    if (state.hydrated) void accountSync.enqueueSave(state.data);
-  }, [accountSync, state.data, state.hydrated]);
+    if (state.hydrated && !onboardingRequired) void accountSync.enqueueSave(state.data);
+  }, [accountSync, onboardingRequired, state.data, state.hydrated]);
 
   useEffect(() => {
     const hash = `#${state.route}`;
@@ -110,6 +116,11 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
 
   if (loadError) return <main className="auth-page"><section className="auth-card"><h1>Could not load your account</h1><p className="error-banner" role="alert">{loadError}</p><button className="button primary" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Try again</button></section></main>;
   if (!state.hydrated) return <main className="auth-page"><p role="status">Loading your training data…</p></main>;
+  if (onboardingRequired) return <OnboardingScreen onComplete={(experience: TrainingExperience) => {
+    dispatch({ type: "HYDRATE", data: createOnboardingPlans(experience) });
+    setOnboardingRequired(false);
+    dispatch({ type: "NAVIGATE", route: "plans" });
+  }} />;
 
   const screen = state.route === "plans" ? <PlansScreen state={state} dispatch={navigateDispatch} /> : state.route === "plan-editor" ? <PlanEditorScreen state={state} dispatch={navigateDispatch} /> : state.route === "today" ? <TodayScreen state={state} dispatch={navigateDispatch} /> : state.route === "settings" ? <SettingsScreen state={state} dispatch={navigateDispatch} /> : state.route === "review" ? <WeeklyReviewScreen state={state} dispatch={navigateDispatch} /> : state.route === "history" ? <HistoryScreen state={state} dispatch={navigateDispatch} /> : state.route === "journal" ? <JournalScreen state={state} dispatch={navigateDispatch} onDraftStatusChange={setJournalDirty} /> : <SessionSummaryScreen state={state} dispatch={navigateDispatch} />;
   return <AppShell

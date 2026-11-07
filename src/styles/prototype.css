@@ -38,6 +38,14 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .auth-message { color: var(--green); font-weight: 700; }
 .auth-mode-switch { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; margin-top: 20px; }
 .auth-actions { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; }
+.onboarding-card { max-width: 620px; }
+.onboarding-levels { display: grid; gap: 10px; margin-top: 20px; }
+.onboarding-choice { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); cursor: pointer; display: grid; gap: 6px; padding: 14px; text-align: left; width: 100%; }
+.onboarding-choice:hover, .onboarding-choice:focus-visible { border-color: var(--green); outline: none; }
+.onboarding-choice[aria-pressed="true"] { border-color: var(--green); box-shadow: 0 0 0 2px var(--green); }
+.onboarding-choice span { color: var(--muted); line-height: 1.4; }
+.onboarding-choice .onboarding-preview { color: var(--ink); font-size: .9rem; font-weight: 700; }
+.onboarding-note { font-size: .92rem; }
 .text-button { background: transparent; border: 0; color: var(--accent-dark); font-size: .85rem; font-weight: 700; padding: 7px 0; text-align: left; text-decoration: underline; }
 .text-button:disabled { opacity: .6; }
 .account-menu { position: relative; }
