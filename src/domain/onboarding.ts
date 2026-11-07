@@ -102,6 +102,7 @@ export function createOnboardingPlans(experience: TrainingExperience, now = Date
       isActive: level === experience,
       createdAt: now,
       updatedAt: now,
+      shareOrigin: "starter",
     };
     data.plans[planId] = plan;
 

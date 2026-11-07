@@ -749,3 +749,35 @@ These remain open unless a later entry resolves them:
 - **Decision:** When an account has no saved training document or pending recovery copy, ask the user to choose beginner, intermediate, or advanced experience before saving starter data. Add all three editable bodyweight plans and activate the one matching the selected experience.
 - **Why:** New users should start with a relevant, manageable workout without restricting their access to the other available plans.
 - **Consequence:** Users can switch among all experience plans in Plans. Existing account data and recovery drafts are never replaced by onboarding. The demo seed remains for development and tests, while new accounts are saved only after plan generation.
+
+## D-091 — Make workout-plan sharing opt-in and separate from account data
+
+- **Status:** Accepted
+- **Date:** 2026-11-07
+- **Decision:** Let a member explicitly publish an individual plan to a separate searchable community catalog, republish updates, and stop sharing. Search returns public plans belonging to other accounts only. Copying creates a private, inactive plan with fresh IDs for every plan record and exercise.
+- **Why:** Members want to share plans and find useful routines without making their personal training history or account identity public.
+- **Consequence:** The shared catalog contains only the plan name, description, days, blocks, exercise details, and targets. It never reads or publishes session history, journal entries, email addresses, or unrelated plans. Copies do not stay linked to or update from the shared original. Database functions expose only safe search results, and row-level security limits share-management data to its owner.
+
+## D-092 — Delete plans without deleting completed workout history
+
+- **Status:** Accepted
+- **Date:** 2026-11-07
+- **Decision:** Allow a user to delete a plan after confirmation. Delete its days, blocks, and plan-exercise assignments, but retain exercises in the library and preserve sessions and immutable session-plan snapshots. If the deleted plan is active, activate the first remaining plan. If it is shared, successfully unshare it before deleting local plan data.
+- **Why:** Users need to remove plans they no longer use without losing their training record or leaving a deleted plan publicly discoverable.
+- **Consequence:** The delete action is destructive only to the plan's editable structure. Completed history remains inspectable, and a failed unshare prevents deletion so the shared listing is not orphaned.
+
+## D-093 — Require edits before sharing starter or copied workout plans
+
+- **Status:** Accepted
+- **Date:** 2026-11-07
+- **Decision:** Starter plans and plans copied from the community cannot be published unchanged. Allow sharing after a user makes a meaningful change to the plan name/description, a training day, a block, its exercise assignments, or an exercise used by that plan. Plans created by the user remain shareable.
+- **Why:** Community sharing should reflect a member's own contribution rather than republishing an untouched built-in or another member's plan.
+- **Consequence:** Track plan origin and whether it has been edited in the account document. Editing is latched so later reverting a field does not silently remove eligibility. Activating a plan or opening/saving without changes does not count as an edit. Existing session snapshots and history are unaffected.
+
+## D-094 — Do not write account data just because it was loaded
+
+- **Status:** Accepted
+- **Date:** 2026-11-07
+- **Decision:** Cloud hydration is read-only unless it opens a recovery draft whose expected document version still matches the cloud. Persist new onboarding data after the user completes onboarding.
+- **Why:** Re-saving an unchanged document needlessly advances its optimistic version and can make another tab's pending recovery copy appear stale.
+- **Consequence:** Real edits still use version-checked saves. Stale recovery copies remain blocked from cloud writes and available for download; this change does not merge or discard an already-existing conflict.

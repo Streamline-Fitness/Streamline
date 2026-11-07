@@ -38,6 +38,8 @@ The web-first prototype must make these requirements interactive:
 - Sunday review drafts from the week, can be saved, and becomes stale after later edits.
 - Analytics render from actual stored records: hold trend, strength trend, hard sets, consistency, session length, benchmark, mobility, and PRs.
 - Users sign in with passwords and recover access by email; each account's training data is isolated by Postgres row-level security.
+- A user may explicitly publish one of their plans to a separate community catalog, search plans shared by other members, and copy a plan into their own account.
+- Community listings contain only the selected plan's name, description, days, blocks, exercise details, and targets. Session history, journal entries, account email, and other plans remain private.
 - The supplied legacy history is migrated only into the designated account; ambiguous source values are retained rather than guessed.
 - Data survives a browser refresh and is available across devices through Supabase.
 - JSON and CSV export work from the beginning.
@@ -53,7 +55,9 @@ These are represented, at most, by a note or a simulated visual state and are no
 - HealthKit
 - Siri, App Intents, and Action Button integration
 - native haptics and native sound behavior
-- social features, coaching, and nutrition
+- social interactions beyond opt-in workout-plan discovery and copying
+- coaching
+- nutrition
 
 The prototype can show a visual “timer complete” cue and optionally use browser audio, but the product decision being validated is the timer and logging flow—not the iOS delivery mechanism.
 
@@ -66,7 +70,7 @@ Use a small Vite + React + TypeScript application developed in VS Code.
 - **Auth and persistence:** Supabase Auth email/password sign-in and recovery links plus a versioned account-owned Postgres JSONB document, protected by row-level security and optimistic version checks.
 - **Hosting:** GitHub Pages serves the static prototype from the repository's `github.io` URL; Supabase remains the backend. Deployment credentials are limited to browser-safe Supabase project settings.
 - **Charts:** lightweight SVG/CSS primitives generated from selectors. Do not introduce a charting dependency until the chart questions are validated.
-- **Data:** one versioned `DataDocument` per authenticated user. New accounts receive the generic plan seed; the supplied personal training log is imported only into its designated account.
+- **Data:** one versioned `DataDocument` per authenticated user. New accounts receive the generic plan seed; the supplied personal training log is imported only into its designated account. Opted-in plans use a separate RLS-protected community table rather than exposing the account document.
 
 The prototype should run with one command:
 
@@ -90,6 +94,7 @@ training-log-prototype/
 │  │  ├─ seed.ts           # exercises, levels, and generic starter plan
 │  │  ├─ onboarding.ts     # experience-based first-account plan generation
 │  │  ├─ plan.ts           # plan/day/block selectors and target expansion
+│  │  ├─ sharedPlans.ts    # public-plan validation and safe, ID-remapped copies
 │  │  ├─ plan.test.ts      # regression tests for plan rules
 │  │  ├─ session.ts        # pure session status and set operations
 │  │  ├─ session.test.ts   # regression tests for session rules
@@ -106,6 +111,7 @@ training-log-prototype/
 │  │  ├─ database.types.ts # Supabase schema types
 │  │  ├─ supabaseClient.ts # configured Supabase client
 │  │  ├─ supabaseRepository.ts # per-user cloud document adapter
+│  │  ├─ sharedWorkoutPlansRepository.ts # opt-in community listing operations
 │  │  ├─ recoveryDraft.ts # temporary backup for unsynced writes
 │  │  ├─ recoveryDraft.test.ts # recovery storage regression tests
 │  │  └─ document.ts      # persisted document validation
@@ -121,6 +127,7 @@ training-log-prototype/
 │  │  ├─ TodayScreen.tsx
 │  │  ├─ PlansScreen.tsx
 │  │  ├─ PlanEditorScreen.tsx
+│  │  ├─ CommunityPlansScreen.tsx # search and copy plans shared by other members
 │  │  ├─ SessionSummaryScreen.tsx
 │  │  ├─ HistoryScreen.tsx
 │  │  ├─ JournalScreen.tsx
@@ -539,6 +546,8 @@ Plan list and activation surface.
 
 - active plan indicator
 - create, rename, duplicate, activate, and delete plans
+- explicit share/update/stop-sharing controls for each plan
+- shared-plan listings are separate from private training documents and expose no member email or workout history
 - create custom exercises for movements not in the shared exercise library
 - select an exercise from a dropdown and edit its name, category, pattern, metric, skill ID, lead-in, and—only for stretch/seconds exercises—default hold duration
 - delete custom exercises that are not used by a plan or history
@@ -563,6 +572,15 @@ The plan editor is a required part of the MVP because the app must serve users w
 - exercise-library side mode (`none` or `eachSide`) used to mark whether the movement is performed on both sides
 - reorder and remove controls
 - preview of the resulting Today day
+
+### Community plan discovery
+
+- Search other members' public plan names and descriptions.
+- Preview the shared plan structure and copy it as an independent, inactive plan.
+- Remap plan, day, block, plan-exercise, and exercise IDs on copy; imported exercises become private user exercises.
+- Only an explicit publish action writes the selected plan to the community catalog. Updating republishes its current structure; stopping sharing removes it from search while preserving the owner's ability to republish.
+- Starter plans and copied plans must be meaningfully edited (plan details, training days, blocks, exercise assignments, or an exercise used by the plan) before the Share action is available. User-created plans are shareable immediately.
+- The database search function returns only public listings owned by other accounts. Search results do not include owner IDs, email addresses, or session and journal data.
 
 ### Today
 
@@ -682,6 +700,10 @@ The optional rest-day weekly reflection and stale behavior are implemented. Add 
 
 Add JSON/CSV export, reset/demo controls, README run instructions, and a short `PROTOTYPE_NOTES.md` recording what the prototype taught us. Do not polish it into a production app.
 
+### Slice 7 — community plan sharing
+
+Allow explicit plan publishing, searchable discovery of other members' public plans, unsharing, and safe copying into a private plan. Keep the public catalog in its own RLS-protected table rather than exposing the account training document. Done when two accounts can share/search/copy independently and neither account's sessions, journal, email, or unrelated plans are revealed.
+
 ## 11. Acceptance walkthrough
 
 The prototype is useful when a reviewer can perform this walkthrough without consulting implementation details:
@@ -704,6 +726,8 @@ The prototype is useful when a reviewer can perform this walkthrough without con
 16. Complete one round of a superset and confirm the paired exercises alternate without rest, then rest begins before the next round.
 17. Browse to a past or future planned day and confirm there is no Start session action; return to today and confirm today's workout can start.
 18. Create journal categories, save and edit multiple entries for one day, view their full text in the archive, and confirm they persist after refresh.
+19. Explicitly share a plan, find it from a different account by searching its name or description, and confirm private session history and account details are not shown.
+20. Copy the shared plan into the second account, confirm every day/block/exercise target is present and the copy is inactive, edit the copy without changing the original, then stop sharing and confirm it disappears from search.
 
 If any step feels awkward, the prototype has found a product or state-model problem before SwiftUI work begins.
 
@@ -718,6 +742,7 @@ The browser prototype does not make the eventual app automatic, but it preserves
 | `timers.ts` timestamp rules | Swift timer state and ActivityKit content state |
 | Analytics selectors | Swift Charts data preparation |
 | Supabase repository and temporary recovery draft | SwiftData/CloudKit persistence adapter |
+| Shared-plan catalog and ID-remapped copies | Native sharing API and independent SwiftData plan records |
 | Hash routes and screens | SwiftUI navigation destinations |
 | Fast demo clock | Preview/test clock, not shipped behavior |
 

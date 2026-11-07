@@ -74,6 +74,7 @@ const demoPlan: Plan = {
   isActive: true,
   createdAt: now,
   updatedAt: now,
+  shareOrigin: "starter",
 };
 
 const planDays: PlanDay[] = [

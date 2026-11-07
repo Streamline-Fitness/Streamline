@@ -63,8 +63,8 @@ export function PlanEditorScreen({ state, dispatch }: Props) {
     </div>
 
     <div className="plan-details-editor">
-      <label>Plan name<input value={planName} onChange={(event) => setPlanName(event.target.value)} /></label>
-      <label>Description <span>(optional)</span><input value={planDescription} onChange={(event) => setPlanDescription(event.target.value)} placeholder="What is this plan for?" /></label>
+      <label>Plan name<input value={planName} maxLength={100} onChange={(event) => setPlanName(event.target.value)} /></label>
+      <label>Description <span>(optional)</span><input value={planDescription} maxLength={500} onChange={(event) => setPlanDescription(event.target.value)} placeholder="What is this plan for?" /></label>
     </div>
 
     <div className="editor-grid">

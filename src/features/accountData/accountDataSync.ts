@@ -31,7 +31,7 @@ type Dependencies = {
   recoveryDraftStore?: RecoveryDraftStore;
   createSeedData?: typeof createSeedData;
   now?: () => number;
-  onHydrate: (data: DataDocument, options?: { needsOnboarding: boolean }) => void;
+  onHydrate: (data: DataDocument, options?: { needsOnboarding: boolean; saveAfterHydrate: boolean }) => void;
   onStateChange?: (state: AccountDataSyncState) => void;
 };
 
@@ -115,8 +115,8 @@ export class AccountDataSync {
     this.onStateChange?.(this.state);
   }
 
-  private hydrate(data: DataDocument, isActive: () => boolean, needsOnboarding = false): void {
-    if (isActive()) this.onHydrate(data, { needsOnboarding });
+  private hydrate(data: DataDocument, isActive: () => boolean, needsOnboarding = false, saveAfterHydrate = false): void {
+    if (isActive()) this.onHydrate(data, { needsOnboarding, saveAfterHydrate });
   }
 
   private async loadAccountData(isActive: () => boolean): Promise<void> {
@@ -177,7 +177,7 @@ export class AccountDataSync {
       this.updateState({ recoveryDraft: pendingDraft });
       if (pendingDraft.expectedVersion === serverVersion) {
         this.updateState({ recoveryConflict: false });
-        this.hydrate(pendingDraft.data, isActive);
+        this.hydrate(pendingDraft.data, isActive, false, true);
         return;
       }
       this.writeBlocked = true;

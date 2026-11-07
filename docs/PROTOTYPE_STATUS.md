@@ -5,8 +5,8 @@
 ## Current state
 
 - **Overall phase:** Implementation
-- **Current slice:** Web accounts, cloud persistence, and journaling
-- **Next implementation slice:** Verify hosted sign-in, password recovery, and account-data isolation on the deployed site, then continue with PRs and richer analytics
+- **Current slice:** Community plan sharing and discovery
+- **Next implementation slice:** Verify share/search/copy and unsharing between two accounts, then continue with PRs, richer analytics, and export
 - **Prototype runnable:** Yes — configure Supabase as described in `README.md`, then run `npm install` and `npm run dev`
 - **Hosting:** GitHub Pages is live at [streamline-fitness.github.io/Streamline](https://streamline-fitness.github.io/Streamline/). The user confirmed the hosted site is working; hosted auth and account isolation still need verification.
 - **Last updated:** 2026-11-07
@@ -107,6 +107,12 @@
 - Email/password sign-in and sign-up plus standard email-link password recovery are implemented. Confirmation and recovery links target the current app URL; password is the default and only sign-in method, and recovery links need to open in the app browser.
 - Account settings are accessed from a top-corner initials avatar. Password management and sign-out are grouped in its menu; Settings is reachable there as well.
 - The Supabase schema migration is applied, the private history migration has completed for the designated account (46 sessions), and the user confirmed password login is working. Cross-account row-level-security isolation and concurrent-session behavior remain unverified.
+- Opt-in community plan publishing, search, unsharing, and private copies are implemented in code. The shared-plan migration is applied to hosted Supabase; the two-account workflow remains to be verified.
+- Community plan results now show a readable title and short description, plain-language plan counts, a compact day schedule, and expandable full-description and workout-structure previews instead of a long always-visible exercise list.
+- The full-description control expands the existing description in place instead of repeating it in a second copy.
+- Plans can be deleted after confirmation. Deleting a shared plan first removes it from community search; plan structure is deleted, while exercises and completed session history are preserved.
+- Starter and community-copied plans remain non-shareable until a meaningful plan or used-exercise edit; user-created plans remain eligible.
+- Loading the current cloud document no longer triggers a no-op save/version bump; same-version recovery drafts still save automatically, and stale recovery copies remain protected and downloadable.
 - The personal source fixture is retained locally under `private/legacyHistory.json` and ignored by Git; migration-only code lives under `scripts/`, outside the browser app's TypeScript build.
 
 ## Not yet implemented
@@ -115,12 +121,19 @@
 
 ## Recommended next step
 
-The user confirmed that GitHub Pages hosting is working. Verify hosted sign-in, password recovery, document persistence, and the designated account's 46 migrated sessions. If possible, test that a second account cannot read the first account's document. Then continue with PRs and richer analytics. Keep export before prototype cleanup.
+Verify sharing, search visibility, unsharing, and independent copies using two accounts without exposing account emails or workout history. Keep checking account-data isolation. Then continue with PRs, richer analytics, and export.
 
 ## Verification history
 
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-11-07 | Prevented no-op saves immediately after account hydration | Account-sync tests verify hydration save directives for current cloud data, matching-version recovery drafts, and stale recovery data; production build and `git diff --check` pass |
+| 2026-11-07 | Require meaningful edits before starter/copied plans can be shared | Production build and test suite pass; eligibility and reducer tests cover plan edits, exercise edits, and unchanged copies/starters |
+| 2026-11-07 | Expand long shared-plan descriptions in place | Production build, all 40 tests, and `git diff --check` pass |
+| 2026-11-07 | Added confirmed plan deletion with shared-listing cleanup and history preservation | Production build and all tests pass, including reducer coverage for plan-structure removal, active-plan replacement, and preserved completed-session snapshots |
+| 2026-11-07 | Made Discover plan cards easier to scan and compare | Production build passes, all 39 tests pass, and `git diff --check` passes. Full descriptions and day/block/exercise details remain available through collapsed previews |
+| 2026-11-07 | Applied the shared-plan migration to hosted Supabase after the missing-table error | Existing private-data schema was verified before repairing its missing migration-history entry; both migrations are now recorded as applied, the shared table and both RPC functions exist, and PostgREST's schema cache was reloaded. Two-account UI verification remains pending |
+| 2026-11-07 | Added opt-in workout-plan sharing, discovery, unsharing, and private copies | Production build passes; all 39 tests pass, including share-data validation, ID remapping, reducer import, and collision checks. Hosted schema was subsequently applied; the two-account walkthrough remains pending |
 | 2026-11-07 | Added experience-based starter plans to new accounts | All three starter plans are added and the selected level is activated; existing data/recovery flows remain unchanged |
 | 2026-11-07 | Added Google Search Console HTML verification file | The Vite build includes the unchanged file at the site root; the hosted URL becomes available after deployment |
 | 2026-11-06 | GitHub Pages hosting confirmed working | User confirmed the deployed hosted app is working; hosted auth and account isolation remain to be verified |

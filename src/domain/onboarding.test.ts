@@ -20,7 +20,7 @@ describe("onboarding plan generation", () => {
     const dayIds = new Set(days.map((day) => day.id));
     const blocks = Object.values(data.planBlocks).filter((block) => dayIds.has(block.dayId));
 
-    expect(plan).toMatchObject({ name, isActive: true, createdAt: 123 });
+    expect(plan).toMatchObject({ name, isActive: true, createdAt: 123, shareOrigin: "starter" });
     expect(days).toHaveLength(dayCount);
     expect(blocks).toHaveLength(dayCount);
     expect(blocks.every((block) => block.roundsMin === rounds)).toBe(true);

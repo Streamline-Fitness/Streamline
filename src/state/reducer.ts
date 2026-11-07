@@ -19,6 +19,31 @@ function updateState(state: AppState, data: AppState["data"]): AppState {
   return { ...state, data, error: undefined };
 }
 
+function hasImportedIdCollision<T extends { id: ID }>(existing: Record<ID, T>, incoming: T[]): boolean {
+  const ids = new Set(incoming.map((record) => record.id));
+  return ids.size !== incoming.length || incoming.some((record) => record.id in existing);
+}
+
+function markPlanEdited(data: AppState["data"], planId: ID | undefined): void {
+  const plan = planId ? data.plans[planId] : undefined;
+  if (plan) plan.hasBeenEdited = true;
+}
+
+function planIdForDay(data: AppState["data"], dayId: ID): ID | undefined {
+  return data.planDays[dayId]?.planId;
+}
+
+function planIdForBlock(data: AppState["data"], blockId: ID): ID | undefined {
+  const block = data.planBlocks[blockId];
+  return block ? planIdForDay(data, block.dayId) : undefined;
+}
+
+function markPlansUsingExerciseEdited(data: AppState["data"], exerciseId: ID): void {
+  for (const item of Object.values(data.planExercises)) {
+    if (item.exerciseId === exerciseId) markPlanEdited(data, planIdForBlock(data, item.blockId));
+  }
+}
+
 function withSession(state: AppState, sessionId: ID, update: (session: Session) => Session): AppState {
   const session = state.data.sessions[sessionId];
   if (!session) return { ...state, error: "That session is no longer available." };
@@ -70,6 +95,11 @@ export function reducer(state: AppState, action: Action): AppState {
     case "HYDRATE":
       {
         const data = action.data;
+        for (const plan of Object.values(data.plans)) {
+          if (plan.id === "plan_demo_weekly_template" || plan.id.startsWith("plan_onboarding_")) {
+            plan.shareOrigin ??= "starter";
+          }
+        }
         for (const exercise of Object.values(data.exercises)) exercise.sideMode ??= "none";
         data.skippedBlocks ??= {};
         data.journalEntries ??= {};
@@ -140,11 +170,84 @@ export function reducer(state: AppState, action: Action): AppState {
       data.plans[action.planId] = { id: action.planId, name: action.name, isActive: false, createdAt: action.now, updatedAt: action.now };
       return { ...updateState(state, data), editorPlanId: action.planId, selectedPlanId: action.planId, route: "plan-editor" };
     }
+    case "DELETE_PLAN": {
+      const plan = state.data.plans[action.planId];
+      if (!plan) return state;
+      const data = cloneData(state.data);
+      delete data.plans[action.planId];
+      const dayIds = new Set(
+        Object.values(data.planDays)
+          .filter((day) => day.planId === action.planId)
+          .map((day) => day.id),
+      );
+      for (const dayId of dayIds) delete data.planDays[dayId];
+      const blockIds = new Set(
+        Object.values(data.planBlocks)
+          .filter((block) => dayIds.has(block.dayId))
+          .map((block) => block.id),
+      );
+      for (const blockId of blockIds) delete data.planBlocks[blockId];
+      for (const item of Object.values(data.planExercises)) {
+        if (blockIds.has(item.blockId)) delete data.planExercises[item.id];
+      }
+
+      const removedActivePlan = plan.isActive;
+      const nextActivePlan = removedActivePlan
+        ? Object.values(data.plans)[0]
+        : Object.values(data.plans).find((candidate) => candidate.isActive);
+      if (removedActivePlan && nextActivePlan) {
+        for (const candidate of Object.values(data.plans)) candidate.isActive = candidate.id === nextActivePlan.id;
+      }
+      const selectedPlanId = nextActivePlan?.id
+        ?? (state.selectedPlanId && data.plans[state.selectedPlanId] ? state.selectedPlanId : undefined);
+      const deletingEditorPlan = state.editorPlanId === action.planId;
+      return {
+        ...updateState(state, data),
+        selectedPlanId,
+        selectedPlanDayId: selectedPlanId
+          ? getScheduledDayForDate(data, selectedPlanId, state.selectedDate)?.id
+          : undefined,
+        editorPlanId: deletingEditorPlan ? selectedPlanId : state.editorPlanId,
+        route: deletingEditorPlan && state.route === "plan-editor" ? "plans" : state.route,
+      };
+    }
+    case "IMPORT_SHARED_PLAN": {
+      const { importedPlan } = action;
+      if (
+        hasImportedIdCollision(state.data.plans, [importedPlan.plan])
+        || hasImportedIdCollision(state.data.planDays, importedPlan.days)
+        || hasImportedIdCollision(state.data.planBlocks, importedPlan.blocks)
+        || hasImportedIdCollision(state.data.planExercises, importedPlan.planExercises)
+        || hasImportedIdCollision(state.data.exercises, importedPlan.exercises)
+      ) {
+        return { ...state, error: "This copied plan could not be added because one of its IDs already exists. Try copying it again." };
+      }
+      const data = cloneData(state.data);
+      data.plans[importedPlan.plan.id] = importedPlan.plan;
+      for (const day of importedPlan.days) data.planDays[day.id] = day;
+      for (const block of importedPlan.blocks) data.planBlocks[block.id] = block;
+      for (const item of importedPlan.planExercises) data.planExercises[item.id] = item;
+      for (const exercise of importedPlan.exercises) data.exercises[exercise.id] = exercise;
+      return {
+        ...updateState(state, data),
+        editorPlanId: importedPlan.plan.id,
+        selectedPlanId: importedPlan.plan.id,
+        route: "plans",
+      };
+    }
     case "UPDATE_PLAN": {
       const plan = state.data.plans[action.planId];
       if (!plan) return state;
       const data = cloneData(state.data);
-      data.plans[action.planId] = { ...plan, name: action.name, description: action.description, updatedAt: action.now };
+      const description = action.description || undefined;
+      const wasEdited = plan.name !== action.name || plan.description !== description;
+      data.plans[action.planId] = {
+        ...plan,
+        name: action.name,
+        description,
+        updatedAt: wasEdited ? action.now : plan.updatedAt,
+        hasBeenEdited: plan.hasBeenEdited || wasEdited,
+      };
       return updateState(state, data);
     }
     case "ACTIVATE_PLAN": {
@@ -158,6 +261,7 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "ADD_PLAN_DAY": {
       const data = cloneData(state.data);
+      markPlanEdited(data, action.planId);
       const order = Object.values(data.planDays).filter((day) => day.planId === action.planId).length;
       data.planDays[action.dayId] = { id: action.dayId, planId: action.planId, name: action.name, weekday: action.weekday, order };
       return { ...updateState(state, data), selectedPlanDayId: action.dayId };
@@ -165,20 +269,27 @@ export function reducer(state: AppState, action: Action): AppState {
     case "UPDATE_PLAN_DAY": {
       const day = state.data.planDays[action.dayId];
       if (!day) return state;
-      const data = cloneData(state.data);
-      data.planDays[action.dayId] = {
+      const nextDay = {
         ...day,
         name: action.name,
         weekday: action.weekday,
         isRestDay: action.isRestDay ?? day.isRestDay ?? false,
         reflectionEnabled: action.isRestDay === false ? false : action.reflectionEnabled ?? day.reflectionEnabled ?? false,
       };
+      const wasEdited = day.name !== nextDay.name
+        || day.weekday !== nextDay.weekday
+        || day.isRestDay !== nextDay.isRestDay
+        || day.reflectionEnabled !== nextDay.reflectionEnabled;
+      const data = cloneData(state.data);
+      data.planDays[action.dayId] = nextDay;
+      if (wasEdited) markPlanEdited(data, day.planId);
       return updateState(state, data);
     }
     case "DELETE_PLAN_DAY": {
       const day = state.data.planDays[action.dayId];
       if (!day) return state;
       const data = cloneData(state.data);
+      markPlanEdited(data, day.planId);
       delete data.planDays[action.dayId];
       for (const block of Object.values(data.planBlocks)) {
         if (block.dayId === action.dayId) {
@@ -192,6 +303,8 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "ADD_PLAN_BLOCK": {
       const data = cloneData(state.data);
+      const day = data.planDays[action.dayId];
+      markPlanEdited(data, day?.planId);
       const order = Object.values(data.planBlocks).filter((block) => block.dayId === action.dayId).length;
       data.planBlocks[action.blockId] = { id: action.blockId, dayId: action.dayId, name: action.name, type: action.blockType, order, roundsMin: 1, roundsMax: 1, restMinS: 45, restMaxS: 60 };
       return updateState(state, data);
@@ -200,13 +313,21 @@ export function reducer(state: AppState, action: Action): AppState {
       const block = state.data.planBlocks[action.blockId];
       if (!block) return state;
       const data = cloneData(state.data);
+      const wasEdited = block.name !== action.name
+        || block.type !== action.blockType
+        || block.roundsMin !== action.roundsMin
+        || block.roundsMax !== action.roundsMax
+        || block.restMinS !== action.restMinS
+        || block.restMaxS !== action.restMaxS;
       data.planBlocks[action.blockId] = { ...block, name: action.name, type: action.blockType, roundsMin: action.roundsMin, roundsMax: action.roundsMax, restMinS: action.restMinS, restMaxS: action.restMaxS };
+      if (wasEdited) markPlanEdited(data, planIdForBlock(data, action.blockId));
       return updateState(state, data);
     }
     case "DELETE_PLAN_BLOCK": {
       const block = state.data.planBlocks[action.blockId];
       if (!block) return state;
       const data = cloneData(state.data);
+      markPlanEdited(data, planIdForBlock(data, action.blockId));
       delete data.planBlocks[action.blockId];
       for (const item of Object.values(data.planExercises)) {
         if (item.blockId === action.blockId) delete data.planExercises[item.id];
@@ -215,12 +336,16 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "ADD_PLAN_EXERCISE": {
       const data = cloneData(state.data);
+      markPlanEdited(data, planIdForBlock(data, action.blockId));
       const order = Object.values(data.planExercises).filter((item) => item.blockId === action.blockId).length;
       data.planExercises[action.planExerciseId] = { id: action.planExerciseId, blockId: action.blockId, exerciseId: action.exerciseId, order, repsMin: action.repsMin, repsMax: action.repsMax, secondsMin: action.secondsMin, secondsMax: action.secondsMax, sideMode: action.sideMode };
       return updateState(state, data);
     }
     case "REMOVE_PLAN_EXERCISE": {
       const data = cloneData(state.data);
+      const planExercise = data.planExercises[action.planExerciseId];
+      if (!planExercise) return state;
+      markPlanEdited(data, planIdForBlock(data, planExercise.blockId));
       delete data.planExercises[action.planExerciseId];
       return updateState(state, data);
     }
@@ -237,7 +362,16 @@ export function reducer(state: AppState, action: Action): AppState {
       const data = cloneData(state.data);
       const metric = isUsedInPlan || isUsedInHistory ? exercise.metric : action.metric;
       const updated: Exercise = { ...exercise, name: action.name, category: action.category, metric, pattern: action.pattern, skillId: action.skillId, leadInS: action.leadInS, defaultHoldS: action.defaultHoldS, sideMode: action.sideMode };
+      const wasEdited = updated.name !== exercise.name
+        || updated.category !== exercise.category
+        || updated.metric !== exercise.metric
+        || updated.pattern !== exercise.pattern
+        || updated.skillId !== exercise.skillId
+        || updated.leadInS !== exercise.leadInS
+        || updated.defaultHoldS !== exercise.defaultHoldS
+        || updated.sideMode !== exercise.sideMode;
       data.exercises[action.exerciseId] = updated;
+      if (wasEdited && isUsedInPlan) markPlansUsingExerciseEdited(data, action.exerciseId);
       return updateState(state, data);
     }
     case "DELETE_EXERCISE": {

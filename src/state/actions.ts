@@ -6,6 +6,7 @@ import type {
   PlanBlockType,
   SideMode,
 } from "../domain/model";
+import type { ImportedPlan } from "../domain/sharedPlans";
 import type { AppState, Route } from "./appState";
 
 export type Action =
@@ -15,6 +16,8 @@ export type Action =
   | { type: "SELECT_PLAN"; planId: ID }
   | { type: "SELECT_PLAN_DAY"; dayId: ID }
   | { type: "CREATE_PLAN"; planId: ID; name: string; now: number }
+  | { type: "DELETE_PLAN"; planId: ID }
+  | { type: "IMPORT_SHARED_PLAN"; importedPlan: ImportedPlan }
   | { type: "UPDATE_PLAN"; planId: ID; name: string; description: string; now: number }
   | { type: "ACTIVATE_PLAN"; planId: ID }
   | { type: "ADD_PLAN_DAY"; dayId: ID; planId: ID; name: string; weekday?: number }

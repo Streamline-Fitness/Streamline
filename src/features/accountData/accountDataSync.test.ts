@@ -23,7 +23,7 @@ function createHarness(options: {
   if (options.draft) recoveryDraftStore.write("user-one", options.draft);
 
   const hydrated: ReturnType<typeof seedData>[] = [];
-  const onboardingRequired: boolean[] = [];
+  const hydrationOptions: Array<{ needsOnboarding: boolean; saveAfterHydrate: boolean }> = [];
   const saveCalls: Array<{ version: number; data: ReturnType<typeof seedData> }> = [];
   const repository = {
     load: vi.fn(async () => {
@@ -45,12 +45,15 @@ function createHarness(options: {
     now: () => 1_800_000_000_100,
     onHydrate: (data, state) => {
       hydrated.push(data);
-      onboardingRequired.push(state?.needsOnboarding ?? false);
+      hydrationOptions.push({
+        needsOnboarding: state?.needsOnboarding ?? false,
+        saveAfterHydrate: state?.saveAfterHydrate ?? false,
+      });
     },
   });
   const load = sync.load();
 
-  return { recoveryDraftStore, hydrated, onboardingRequired, saveCalls, sync, load };
+  return { recoveryDraftStore, hydrated, hydrationOptions, saveCalls, sync, load };
 }
 
 function draft(data = seedData(), expectedVersion = 4): RecoveryDraft {
@@ -59,12 +62,12 @@ function draft(data = seedData(), expectedVersion = 4): RecoveryDraft {
 
 describe("account data synchronization", () => {
   it("marks an account without saved data for onboarding", async () => {
-    const { load, hydrated, onboardingRequired } = createHarness();
+    const { load, hydrated, hydrationOptions } = createHarness();
 
     await load.completed;
 
     expect(hydrated).toHaveLength(1);
-    expect(onboardingRequired).toEqual([true]);
+    expect(hydrationOptions).toEqual([{ needsOnboarding: true, saveAfterHydrate: false }]);
   });
 
   it("does not onboard existing account data or a pending recovery copy", async () => {
@@ -73,14 +76,14 @@ describe("account data synchronization", () => {
     const recovered = createHarness({ draft: draft(seedData(), 0) });
     await recovered.load.completed;
 
-    expect(existing.onboardingRequired).toEqual([false]);
-    expect(recovered.onboardingRequired).toEqual([false]);
+    expect(existing.hydrationOptions).toEqual([{ needsOnboarding: false, saveAfterHydrate: false }]);
+    expect(recovered.hydrationOptions).toEqual([{ needsOnboarding: false, saveAfterHydrate: false }]);
   });
 
   it("hydrates a matching-version recovery draft and saves it against that version", async () => {
     const savedData = seedData();
     savedData.plans.plan_demo_weekly_template.name = "Recovered plan";
-    const { load, hydrated, recoveryDraftStore, saveCalls, sync } = createHarness({
+    const { load, hydrated, hydrationOptions, recoveryDraftStore, saveCalls, sync } = createHarness({
       serverVersion: 4,
       serverData: seedData(),
       draft: draft(savedData, 4),
@@ -91,6 +94,7 @@ describe("account data synchronization", () => {
     expect(hydrated).toEqual([savedData]);
     expect(sync.snapshot.recoveryConflict).toBe(false);
     expect(sync.snapshot.recoveryDraft?.data.plans.plan_demo_weekly_template.name).toBe("Recovered plan");
+    expect(hydrationOptions).toEqual([{ needsOnboarding: false, saveAfterHydrate: true }]);
 
     await sync.enqueueSave(savedData);
 
@@ -102,7 +106,7 @@ describe("account data synchronization", () => {
   it("blocks saving when both the cloud and the recovery copy changed", async () => {
     const recovered = seedData();
     recovered.plans.plan_demo_weekly_template.name = "Unsynced edit";
-    const { load, hydrated, saveCalls, sync, recoveryDraftStore } = createHarness({
+    const { load, hydrated, hydrationOptions, saveCalls, sync, recoveryDraftStore } = createHarness({
       serverVersion: 7,
       serverData: seedData(),
       draft: draft(recovered, 4),
@@ -112,6 +116,7 @@ describe("account data synchronization", () => {
     await sync.enqueueSave(recovered);
 
     expect(hydrated).toEqual([recovered]);
+    expect(hydrationOptions).toEqual([{ needsOnboarding: false, saveAfterHydrate: false }]);
     expect(sync.snapshot.recoveryConflict).toBe(true);
     expect(sync.snapshot.saveError).toContain("cloud data has since changed");
     expect(saveCalls).toEqual([]);

@@ -16,12 +16,13 @@ import { WeeklyReviewScreen } from "./screens/WeeklyReviewScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
 import { JournalScreen } from "./screens/JournalScreen";
 import { OnboardingScreen } from "./screens/OnboardingScreen";
+import { CommunityPlansScreen } from "./screens/CommunityPlansScreen";
 import { createOnboardingPlans, type TrainingExperience } from "./domain/onboarding";
 import "./styles/prototype.css";
 
-function routeFromHash(): "plans" | "plan-editor" | "today" | "summary" | "settings" | "review" | "history" | "journal" {
+function routeFromHash(): "plans" | "plan-editor" | "community" | "today" | "summary" | "settings" | "review" | "history" | "journal" {
   const route = window.location.hash.replace("#", "");
-  return route === "plan-editor" || route === "today" || route === "summary" || route === "settings" || route === "review" || route === "history" || route === "journal" ? route : "today";
+  return route === "plans" || route === "plan-editor" || route === "community" || route === "today" || route === "summary" || route === "settings" || route === "review" || route === "history" || route === "journal" ? route : "today";
 }
 
 function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; session: Session }) {
@@ -32,9 +33,11 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
   const [journalDirty, setJournalDirty] = useState(false);
   const latestState = useRef(state);
   latestState.current = state;
+  const skipHydratedSave = useRef(false);
   const accountSync = useMemo(() => new AccountDataSync(session.user.id, {
     onHydrate: (data, options) => {
       setOnboardingRequired(options?.needsOnboarding ?? false);
+      skipHydratedSave.current = !(options?.saveAfterHydrate ?? false);
       dispatch({ type: "HYDRATE", data });
     },
     onStateChange: setAccountSyncState,
@@ -98,6 +101,10 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
   }, [accountSync]);
 
   useEffect(() => {
+    if (skipHydratedSave.current) {
+      skipHydratedSave.current = false;
+      return;
+    }
     if (state.hydrated && !onboardingRequired) void accountSync.enqueueSave(state.data);
   }, [accountSync, onboardingRequired, state.data, state.hydrated]);
 
@@ -122,7 +129,7 @@ function AuthenticatedApp({ client, session }: { client: AppSupabaseClient; sess
     dispatch({ type: "NAVIGATE", route: "plans" });
   }} />;
 
-  const screen = state.route === "plans" ? <PlansScreen state={state} dispatch={navigateDispatch} /> : state.route === "plan-editor" ? <PlanEditorScreen state={state} dispatch={navigateDispatch} /> : state.route === "today" ? <TodayScreen state={state} dispatch={navigateDispatch} /> : state.route === "settings" ? <SettingsScreen state={state} dispatch={navigateDispatch} /> : state.route === "review" ? <WeeklyReviewScreen state={state} dispatch={navigateDispatch} /> : state.route === "history" ? <HistoryScreen state={state} dispatch={navigateDispatch} /> : state.route === "journal" ? <JournalScreen state={state} dispatch={navigateDispatch} onDraftStatusChange={setJournalDirty} /> : <SessionSummaryScreen state={state} dispatch={navigateDispatch} />;
+  const screen = state.route === "plans" ? <PlansScreen state={state} dispatch={navigateDispatch} client={client} userId={session.user.id} /> : state.route === "plan-editor" ? <PlanEditorScreen state={state} dispatch={navigateDispatch} /> : state.route === "community" ? <CommunityPlansScreen dispatch={navigateDispatch} client={client} /> : state.route === "today" ? <TodayScreen state={state} dispatch={navigateDispatch} /> : state.route === "settings" ? <SettingsScreen state={state} dispatch={navigateDispatch} /> : state.route === "review" ? <WeeklyReviewScreen state={state} dispatch={navigateDispatch} /> : state.route === "history" ? <HistoryScreen state={state} dispatch={navigateDispatch} /> : state.route === "journal" ? <JournalScreen state={state} dispatch={navigateDispatch} onDraftStatusChange={setJournalDirty} /> : <SessionSummaryScreen state={state} dispatch={navigateDispatch} />;
   return <AppShell
     state={state}
     dispatch={navigateDispatch}

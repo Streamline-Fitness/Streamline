@@ -40,6 +40,8 @@ export type Plan = {
   isActive: boolean;
   createdAt: number;
   updatedAt: number;
+  shareOrigin?: "starter" | "copy";
+  hasBeenEdited?: boolean;
 };
 
 export type PlanDay = {

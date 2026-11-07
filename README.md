@@ -23,12 +23,12 @@ The web prototype uses React, TypeScript, Vite, plain CSS, and Supabase. It is n
 
 ## What is implemented
 
-The current implementation includes plan authoring, guided session logging, weekly reflection, history browsing, email/password sign-in, password recovery, and per-account cloud persistence. The supplied training log is migrated only into the designated account, never automatically copied to every new user.
+`The current implementation includes plan authoring, opt-in workout-plan sharing and discovery, guided session logging, weekly reflection, history browsing, email/password sign-in, password recovery, and per-account cloud persistence. The supplied training log is migrated only into the designated account, never automatically copied to every new user.
 
 ### Plans and exercises
 
 - Today is the default screen.
-- Plans can be created, renamed, edited, and activated.
+- Plans can be created, renamed, edited, activated, and deleted. Deleting a plan removes its editable structure but preserves completed workout history.
 - Plans can have multiple training days.
 - Training days can be assigned to Monday–Sunday or left unscheduled.
 - Training days can be renamed or deleted.
@@ -43,6 +43,9 @@ The current implementation includes plan authoring, guided session logging, week
 - Exercise targets can be expressed as rep or seconds ranges.
 - Bilateral movements can be marked as **Total** or **Both Sides**.
 - Plan blocks and Today blocks use collapsible sections so long routines remain manageable on a phone-sized screen.
+- Plans are private until explicitly shared. Discover searches other members' shared plans; copying creates a separate, inactive plan in your account.
+- Starter plans and community copies must be meaningfully edited before sharing; plans you create are shareable right away.
+- Shared plans contain only their plan structure and targets. Session history, journal entries, account email, and unrelated plans are never shared.
 
 ### Today and logging
 
@@ -120,7 +123,7 @@ npm install
 ### Configure Supabase
 
 1. Create a Supabase project and enable the Email provider in **Authentication → Providers**.
-2. In the Supabase SQL Editor, run [`supabase/migrations/20261029103000_user_training_documents.sql`](supabase/migrations/20261029103000_user_training_documents.sql).
+2. In the Supabase SQL Editor, run [`supabase/migrations/20261029103000_user_training_documents.sql`](supabase/migrations/20261029103000_user_training_documents.sql) and [`supabase/migrations/20261107143000_shared_workout_plans.sql`](supabase/migrations/20261107143000_shared_workout_plans.sql).
 3. In **Authentication → URL Configuration**, set the local site URL to `http://localhost:5173` and allow that redirect URL.
 4. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the project API settings. The publishable/anon key is intended for browser use; never put a service-role key in a `VITE_` variable.
 
@@ -218,6 +221,8 @@ The quickest way to explore the current slice is:
 16. Edit the plan, then inspect the completed session again. Its historical plan snapshot should remain unchanged.
 17. Open History, inspect a saved session, and return to its editable summary.
 18. Open one of the bundled historical sessions, inspect its values and original excerpt, and confirm it remains after refresh.
+19. From Plans, explicitly share a plan. Open Discover, search by its title or description from another account, and copy it.
+20. Confirm the copy is private and inactive, changing it does not affect the original shared plan, and stopping sharing removes the original from search.
 
 ## How data works
 
@@ -234,6 +239,8 @@ The prototype keeps structured records rather than storing a screen-shaped form.
 - `SkippedBlock` — a skipped block and its reason
 - `WeeklyReview` — a saved weekly reflection and next-week goal
 - `Settings` — prototype timing settings
+
+The community catalog uses a separate `shared_workout_plans` table. Only plans a member explicitly shares are searchable, and the search endpoint excludes owner identity. It stores a plan snapshot only; account training documents, sessions, and journal entries remain private.
 
 The supplied historical log is normalized into `Session`, `SessionPlanItem`, `SetEntry`, and `WeeklyReview` records. A one-time local admin script merges those records into the designated account's existing `DataDocument`; normal sign-up never seeds the supplied personal log. Historical sessions keep date and duration without fabricated start timestamps; unresolved source values remain in each session's original excerpt.
 
@@ -286,6 +293,8 @@ training-log-prototype/
    │  ├─ seed.ts
    │  ├─ plan.ts
    │  ├─ plan.test.ts
+   │  ├─ sharedPlans.ts
+   │  ├─ sharedPlans.test.ts
    │  ├─ session.ts
    │  └─ session.test.ts
    ├─ state/
@@ -300,7 +309,8 @@ training-log-prototype/
    │  ├─ recoveryDraft.ts
    │  ├─ recoveryDraft.test.ts
    │  ├─ supabaseClient.ts
-   │  └─ supabaseRepository.ts
+   │  ├─ supabaseRepository.ts
+   │  └─ sharedWorkoutPlansRepository.ts
    ├─ features/
    │  ├─ auth/
    │  │  └─ AuthGate.tsx
@@ -312,6 +322,7 @@ training-log-prototype/
    │  ├─ TodayScreen.tsx
    │  ├─ PlansScreen.tsx
    │  ├─ PlanEditorScreen.tsx
+   │  ├─ CommunityPlansScreen.tsx
    │  ├─ SessionSummaryScreen.tsx
    │  └─ SettingsScreen.tsx
    ├─ ui/
@@ -371,6 +382,7 @@ The broader prototype is intended to validate:
 - JSON and CSV export
 - Account sign-in and private cross-device data
 - Safe, account-specific migration of supplied history
+- Opt-in sharing, search, unsharing, and private copying of workout plans
 
 ### Not in scope
 
@@ -382,7 +394,7 @@ The web prototype does not implement production versions of:
 - HealthKit
 - Siri or App Intents
 - Native notifications or haptics
-- Social features
+- Social interactions beyond opt-in workout-plan discovery and copying
 - Coaching
 - Nutrition tracking
 
@@ -392,7 +404,7 @@ These are later native iOS concerns. A browser sound cue may simulate a timer mi
 
 ### Current status
 
-The current implementation has completed the plan, logging, reflection, and history slices. Supabase email magic-link auth and private cloud-document persistence are wired; a project must be configured and the migration applied before the web app can be used.
+The current implementation has completed the plan, logging, reflection, and history slices, and now includes opt-in plan sharing and discovery. Supabase email/password auth and private cloud-document persistence are wired. Apply both SQL migrations in a Supabase project before using the app; the shared-plan catalog migration must also be applied to an existing project.
 
 ### Planned slices
 
@@ -408,6 +420,8 @@ The current implementation has completed the plan, logging, reflection, and hist
    - Sunday review, stale behavior, PRs, and chart-ready selectors.
 6. **Slice 6 — Export and prototype cleanup**
    - JSON/CSV export and prototype notes.
+7. **Slice 7 — Community plan sharing**
+   - Explicit publishing, discovery, unsharing, and independent private copies.
 
 See [`docs/PROTOTYPE_STATUS.md`](docs/PROTOTYPE_STATUS.md) for the living implementation status and recommended next step.
 
