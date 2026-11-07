@@ -1,8 +1,11 @@
 const boardElement = document.querySelector("#board");
 const message = document.querySelector("#message");
 const form = document.querySelector("#new-card-form");
-const scrollLeftButton = document.querySelector("#scroll-left");
-const scrollRightButton = document.querySelector("#scroll-right");
+const chatForm = document.querySelector("#chat-form");
+const chatHistory = document.querySelector("#chat-history");
+const chatMessage = document.querySelector("#chat-message");
+const chatSendButton = document.querySelector("#chat-send");
+const searchInput = document.querySelector("#work-search");
 const columns = [
   { id: "backlog", name: "Backlog" },
   { id: "ready", name: "Ready" },
@@ -10,23 +13,6 @@ const columns = [
   { id: "done", name: "Done" },
 ];
 let board;
-
-function updateScrollControls() {
-  const maxScroll = boardElement.scrollWidth - boardElement.clientWidth;
-  scrollLeftButton.disabled = boardElement.scrollLeft <= 1;
-  scrollRightButton.disabled = boardElement.scrollLeft >= maxScroll - 1;
-}
-
-scrollLeftButton.addEventListener("click", () => {
-  boardElement.scrollBy({ left: -boardElement.clientWidth * 0.8, behavior: "smooth" });
-});
-scrollRightButton.addEventListener("click", () => {
-  boardElement.scrollBy({ left: boardElement.clientWidth * 0.8, behavior: "smooth" });
-});
-boardElement.addEventListener("scroll", updateScrollControls, { passive: true });
-const boardResizeObserver = new ResizeObserver(updateScrollControls);
-boardResizeObserver.observe(boardElement);
-window.addEventListener("resize", updateScrollControls);
 
 function setMessage(text, isError = false) {
   message.textContent = text;
@@ -54,7 +40,72 @@ function button(text, className, handler) {
   return element;
 }
 
-function makeCard(card, columnId) {
+function addChatMessage(role, content, isError = false) {
+  const entry = document.createElement("article");
+  entry.className = `chat-entry ${role}${isError ? " chat-error" : ""}`;
+  const label = document.createElement("h3");
+  label.textContent = role === "user" ? "You" : "Copilot";
+  const body = document.createElement("p");
+  body.textContent = content;
+  entry.append(label, body);
+  chatHistory.append(entry);
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+async function loadChatHistory() {
+  try {
+    const result = await request("/api/chat/history");
+    for (const item of result.messages) addChatMessage(item.role, item.content, item.error);
+  } catch (error) {
+    setMessage(error instanceof Error ? error.message : "The conversation could not be loaded.", true);
+  }
+}
+
+chatForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const content = chatMessage.value.trim();
+  if (!content) return;
+  addChatMessage("user", content);
+  chatMessage.value = "";
+  chatMessage.disabled = true;
+  chatSendButton.disabled = true;
+  chatSendButton.textContent = "Waiting for Copilot…";
+  setMessage("Sending your message to this Copilot conversation…");
+  try {
+    const result = await request("/api/chat", "POST", { message: content });
+    addChatMessage("assistant", result.content);
+    setMessage("Copilot replied. You can continue the discussion or add a work card.");
+  } catch (error) {
+    chatMessage.value = content;
+    addChatMessage("assistant", error instanceof Error ? error.message : "Copilot could not respond.", true);
+    setMessage(`${error instanceof Error ? error.message : "Copilot could not respond."} Your message is ready to retry.`, true);
+  } finally {
+    chatMessage.disabled = false;
+    chatSendButton.disabled = false;
+    chatSendButton.textContent = "Send to Copilot";
+    chatMessage.focus();
+  }
+});
+
+async function implementCard(card, implementButton) {
+  implementButton.disabled = true;
+  implementButton.textContent = "Implementing…";
+  setMessage(`Sending "${card.title}" to Copilot to implement…`);
+  try {
+    const result = await request(`/api/cards/${card.id}/implement`, "POST", {});
+    board = result.board;
+    render();
+    addChatMessage("user", `Implement board item: ${result.card.title}`);
+    addChatMessage("assistant", result.content);
+    setMessage(`Copilot finished the implementation request for "${result.card.title}".`);
+  } catch (error) {
+    await loadBoard();
+    addChatMessage("assistant", error instanceof Error ? error.message : "Copilot could not implement this item.", true);
+    setMessage(error instanceof Error ? error.message : "Copilot could not implement this item.", true);
+  }
+}
+
+function makeCard(card) {
   const article = document.createElement("article");
   article.className = "card";
   article.draggable = true;
@@ -78,26 +129,10 @@ function makeCard(card, columnId) {
 
   const actions = document.createElement("div");
   actions.className = "card-actions";
-  const moveLabel = document.createElement("label");
-  moveLabel.className = "move-label";
-  moveLabel.textContent = "Destination";
-  const moveSelect = document.createElement("select");
-  moveSelect.setAttribute("aria-label", `Move ${card.title} to column`);
-  for (const column of columns) {
-    const option = document.createElement("option");
-    option.value = column.id;
-    option.textContent = column.name;
-    option.selected = column.id === columnId;
-    moveSelect.append(option);
-  }
-  moveLabel.append(moveSelect);
-  actions.append(moveLabel);
-  const moveButton = button("Move card", "small-button", async () => {
-    if (moveSelect.value !== columnId) await mutate(`/api/cards/${card.id}/move`, "POST", { column: moveSelect.value }, "Card moved.");
-  });
-  moveButton.setAttribute("aria-label", `Move ${card.title}`);
-  moveButton.title = `Move "${card.title}" to the selected destination`;
-  actions.append(moveButton);
+  const implementButton = button("Implement", "implement-button", () => implementCard(card, implementButton));
+  implementButton.setAttribute("aria-label", `Implement ${card.title} with Copilot`);
+  implementButton.title = `Ask Copilot to implement "${card.title}" in this repository`;
+  actions.append(implementButton);
   article.append(actions);
 
   const details = document.createElement("details");
@@ -143,13 +178,16 @@ function makeCard(card, columnId) {
 }
 
 function render() {
+  const expandedColumns = new Map(
+    [...boardElement.querySelectorAll(".column")].map((section) => [section.dataset.column, section.open]),
+  );
   boardElement.replaceChildren();
+  const query = searchInput.value.trim().toLocaleLowerCase();
   for (const column of columns) {
-    const section = document.createElement("section");
+    const section = document.createElement("details");
     section.className = "column";
     section.dataset.column = column.id;
-    section.style.scrollSnapAlign = "start";
-    section.setAttribute("aria-labelledby", `column-${column.id}`);
+    section.open = Boolean(query) || expandedColumns.get(column.id) || (!expandedColumns.has(column.id) && column.id !== "done");
     section.addEventListener("dragover", (event) => {
       event.preventDefault();
       event.dataTransfer.dropEffect = "move";
@@ -162,34 +200,43 @@ function render() {
       event.preventDefault();
       section.classList.remove("drop-target");
       const id = event.dataTransfer.getData("text/plain");
+      const currentColumn = columns.find((item) => board.columns[item.id].some((card) => card.id === id));
+      if (!id || currentColumn?.id === column.id) return;
       if (id) await mutate(`/api/cards/${id}/move`, "POST", { column: column.id }, `Moved to ${column.name}.`);
     });
 
-    const heading = document.createElement("h2");
-    heading.id = `column-${column.id}`;
+    const heading = document.createElement("summary");
+    heading.className = "column-heading";
     heading.textContent = column.name;
     const cards = board.columns[column.id];
+    const visibleCards = cards.filter((card) =>
+      `${card.title}\n${card.description}`.toLocaleLowerCase().includes(query),
+    );
     const count = document.createElement("span");
     count.className = "count";
-    count.textContent = String(cards.length);
-    count.setAttribute("aria-label", `${cards.length} cards`);
+    count.textContent = query ? `${visibleCards.length}/${cards.length}` : String(cards.length);
+    const countLabel = (value) => `${value} work ${value === 1 ? "item" : "items"}`;
+    count.setAttribute("aria-label", query
+      ? `${countLabel(visibleCards.length)} matching; ${countLabel(cards.length)} total`
+      : countLabel(cards.length));
     heading.append(count);
     section.append(heading);
 
     const list = document.createElement("div");
     list.className = "cards";
-    if (cards.length === 0) {
+    if (visibleCards.length === 0) {
       const empty = document.createElement("p");
       empty.className = "empty";
-      empty.textContent = "Drop a card here or add new work.";
+      empty.textContent = query ? "No work matches this filter." : "Drop work here or add a new item.";
       list.append(empty);
     }
-    for (const card of cards) list.append(makeCard(card, column.id));
+    for (const card of visibleCards) list.append(makeCard(card));
     section.append(list);
     boardElement.append(section);
   }
-  requestAnimationFrame(updateScrollControls);
 }
+
+searchInput.addEventListener("input", render);
 
 async function mutate(path, method, data, successMessage) {
   try {
@@ -234,6 +281,7 @@ async function loadBoard() {
 }
 
 loadBoard();
+loadChatHistory();
 
 setInterval(async () => {
   const active = document.activeElement;

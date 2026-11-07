@@ -5,30 +5,35 @@
     "backlog": [
       {
         "id": "c8c57912-e430-4b3d-a245-2246506dc74e",
-        "title": "PRs, richer analytics, and export",
-        "description": "",
+        "title": "Verify private data isolation and cloud recovery",
+        "description": "After the hosted deployment is available, sign in with a second account and confirm it cannot read or alter the designated account's training document. Verify edits persist across refresh, offline edits produce the documented recovery path, and simultaneous writes surface a version conflict without silently overwriting newer data. Record any failure as a follow-up fix.",
         "createdAt": "2026-11-06T23:22:11.685Z",
-        "updatedAt": "2026-11-06T23:26:48.215Z"
-      }
-    ],
-    "ready": [
+        "updatedAt": "2026-11-07T01:18:16.745Z"
+      },
       {
-        "id": "e46b5d8a-3c88-42b7-9790-3ed679a6fd12",
-        "title": "Complete the first GitHub Pages deployment, verify hosted sign-in and password recovery, then continue with PRs and richer analytics",
-        "description": "",
-        "createdAt": "2026-11-06T23:22:11.685Z",
-        "updatedAt": "2026-11-06T23:22:11.685Z"
-      }
-    ],
-    "inProgress": [
+        "id": "2c1ddb3e-c9c9-4fd6-848d-b724e6427ab7",
+        "title": "Add personal-record detection and display",
+        "description": "Detect personal records per skill/exercise, level, and equipment: longest clean hold or highest rep count. Exclude bailed holds. Show newly earned records in the completed-session summary and Sunday review, and cover matching, tie, level/equipment separation, and bail exclusion with tests.",
+        "createdAt": "2026-11-07T01:18:20.448Z",
+        "updatedAt": "2026-11-07T01:18:20.448Z"
+      },
       {
-        "id": "e74b779a-f362-434b-bd58-1967863d69c4",
-        "title": "Web accounts, cloud persistence, and journaling",
-        "description": "",
-        "createdAt": "2026-11-06T23:22:11.685Z",
-        "updatedAt": "2026-11-06T23:28:33.730Z"
+        "id": "9faf503b-fb16-4334-85a9-042fc8f8454c",
+        "title": "Build core progress analytics",
+        "description": "Derive charts and metrics from saved records: best hold per session with a 3-session rolling best by skill/level/equipment; best set and total reps per exercise; weekly hard sets by movement pattern; weekly consistency; session length; benchmark results; and mobility depth ratings. Include understandable empty states and tests that chart selectors use real stored data.",
+        "createdAt": "2026-11-07T01:18:22.313Z",
+        "updatedAt": "2026-11-07T01:18:22.313Z"
+      },
+      {
+        "id": "55b978ac-8444-4c45-a3a3-c4a31bea4455",
+        "title": "Add JSON and CSV training-data export",
+        "description": "Let the signed-in user export their own training history from the app. JSON output must be valid and retain the documented versioned data shape; CSV must quote commas, quotes, and newlines correctly and include session dates, exercise/set metrics, notes, skipped reasons, reviews, and journal entries without exposing another account's data. Verify exported contents and failure handling.",
+        "createdAt": "2026-11-07T01:18:25.425Z",
+        "updatedAt": "2026-11-07T01:18:25.425Z"
       }
     ],
+    "ready": [],
+    "inProgress": [],
     "done": [
       {
         "id": "1d32d245-de9c-406e-91e1-57d898ba57a2",
@@ -64,6 +69,20 @@
         "description": "",
         "createdAt": "2026-11-06T23:22:11.685Z",
         "updatedAt": "2026-11-06T23:29:19.381Z"
+      },
+      {
+        "id": "e74b779a-f362-434b-bd58-1967863d69c4",
+        "title": "Implement web accounts, cloud persistence, and journaling",
+        "description": "Feature implementation is complete: password sign-in/recovery, account-owned Supabase documents, history/journal, optimistic version checks, and recovery drafts are in place; the designated account's 46-session history migration has completed. Hosted deployment checks and live cross-account isolation/concurrency verification are tracked separately.",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-07T01:18:16.740Z"
+      },
+      {
+        "id": "e46b5d8a-3c88-42b7-9790-3ed679a6fd12",
+        "title": "Deploy the prototype to GitHub Pages",
+        "description": "Configure repository Pages settings and the VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY Actions variables. Set the Supabase Auth Site URL and allowed redirect URL to https://streamline-fitness.github.io/Streamline/. Run the Deploy to GitHub Pages workflow and confirm the hosted app loads, sign-in succeeds, and password recovery returns to the deployed app. Verify the designated account's 46 migrated sessions are visible and a training-data edit survives refresh.",
+        "createdAt": "2026-11-06T23:22:11.685Z",
+        "updatedAt": "2026-11-07T01:21:02.514Z"
       }
     ]
   }

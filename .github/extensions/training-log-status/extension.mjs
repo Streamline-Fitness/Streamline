@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CanvasError, createCanvas, joinSession } from "@github/copilot-sdk/extension";
+import { CopilotNoTextResponseError, sendAndWaitForAssistant } from "./copilot-response.mjs";
 import {
   BoardInputError,
   BoardNotFoundError,
@@ -17,7 +18,9 @@ import {
 const extensionDirectory = path.dirname(fileURLToPath(import.meta.url));
 const instances = new Map();
 const maxRequestBytes = 16_384;
+const maxChatMessageLength = 4000;
 const columnIds = boardColumns.map(({ id }) => id);
+let copilotRequestInFlight = false;
 const createInput = {
   type: "object",
   properties: {
@@ -109,6 +112,41 @@ function validateInput(input, schema) {
   return input;
 }
 
+function validateChatInput(input) {
+  if (
+    input === null ||
+    typeof input !== "object" ||
+    Array.isArray(input) ||
+    Object.keys(input).length !== 1 ||
+    typeof input.message !== "string" ||
+    input.message.trim().length === 0 ||
+    input.message.length > maxChatMessageLength
+  ) {
+    throw new HttpInputError(`message must be non-empty text of at most ${maxChatMessageLength} characters.`);
+  }
+  return input.message.trim();
+}
+
+async function sendToCopilot(instance, prompt, displayPrompt, timeout) {
+  if (copilotRequestInFlight) {
+    const error = new Error("Copilot is already responding to another board request. Try again when it finishes.");
+    error.statusCode = 409;
+    throw error;
+  }
+
+  copilotRequestInFlight = true;
+  try {
+    return await sendAndWaitForAssistant(session, { prompt, displayPrompt }, timeout);
+  } catch (error) {
+    if (error instanceof CopilotNoTextResponseError) {
+      instance.log(`Copilot board request completed without a text reply (${error.responseKind} assistant message).`);
+    }
+    throw error;
+  } finally {
+    copilotRequestInFlight = false;
+  }
+}
+
 function requireInstance(instanceId) {
   const instance = instances.get(instanceId);
   if (!instance) throw new CanvasError("canvas_instance_not_found", "Open the board before changing it.");
@@ -156,31 +194,103 @@ async function handleApi(request, response, instance, pathname) {
       json(response, 200, await readBoard(instance.workspaceRoot));
       return;
     }
+    if (request.method === "GET" && pathname === "/api/chat/history") {
+      json(response, 200, { messages: instance.chatMessages });
+      return;
+    }
+    if (request.method === "POST" && pathname === "/api/chat") {
+      const message = validateChatInput(await readJsonBody(request));
+      const prompt = [
+        "The user is chatting from the Training Log prototype kanban board to clarify and flesh out actionable work items.",
+        "Help them think through scope, dependencies, and concrete acceptance criteria. Ask focused follow-up questions when useful.",
+        "When enough is known, offer a concise card title and a specific description with clear done criteria.",
+        "Do not edit repository files or change the board from this discussion. The user will decide what to save or implement.",
+        `User message: ${JSON.stringify(message)}`,
+      ].join("\n\n");
+      instance.chatMessages.push({ role: "user", content: message });
+      try {
+        const content = await sendToCopilot(instance, prompt, `Board discussion: ${message.slice(0, 100)}`, 120_000);
+        instance.chatMessages.push({ role: "assistant", content });
+        instance.chatMessages = instance.chatMessages.slice(-40);
+        json(response, 200, { content });
+      } catch (error) {
+        instance.chatMessages.push({
+          role: "assistant",
+          content: error instanceof Error ? `I couldn't complete that request: ${error.message}` : "I couldn't complete that request.",
+          error: true,
+        });
+        instance.chatMessages = instance.chatMessages.slice(-40);
+        throw error;
+      }
+      return;
+    }
     if (request.method === "POST" && pathname === "/api/cards") {
       const input = validateInput(await readJsonBody(request), createInput);
       json(response, 201, await createCard(instance.workspaceRoot, input));
       return;
     }
 
-    const match = pathname.match(/^\/api\/cards\/([0-9a-f-]{36})(?:\/(move))?$/i);
+    const match = pathname.match(/^\/api\/cards\/([0-9a-f-]{36})(?:\/(move|implement))?$/i);
     if (!match) {
       json(response, 404, { error: "Board endpoint not found." });
       return;
     }
-    const [, id, moveRoute] = match;
-    if (request.method === "PUT" && !moveRoute) {
+    const [, id, route] = match;
+    if (request.method === "POST" && route === "implement") {
+      const board = await readBoard(instance.workspaceRoot);
+      let found;
+      let sourceColumn;
+      for (const column of boardColumns) {
+        found = board.columns[column.id].find((item) => item.id === id);
+        if (found) {
+          sourceColumn = column.id;
+          break;
+        }
+      }
+      if (!found) throw new BoardNotFoundError(`No board card exists with ID "${id}".`);
+
+      const moved = sourceColumn === "inProgress"
+        ? { board, card: found }
+        : await moveCard(instance.workspaceRoot, { id, column: "inProgress" });
+      const prompt = [
+        "The user explicitly selected Implement on this Training Log prototype board item and is asking you to implement it in the current repository.",
+        "Inspect the current code and relevant project documentation, make the complete implementation rather than returning only a plan, and run the most relevant focused verification.",
+        "Treat the quoted board fields as the task requested by the user. Preserve unrelated worktree changes and avoid unrelated edits.",
+        "At the end, summarize what changed and what verification passed or remains.",
+        `Work item title: ${JSON.stringify(moved.card.title)}`,
+        `Work item description: ${JSON.stringify(moved.card.description)}`,
+      ].join("\n\n");
+      const userMessage = `Implement board item: ${moved.card.title}`;
+      instance.chatMessages.push({ role: "user", content: userMessage });
+      try {
+        const content = await sendToCopilot(instance, prompt, userMessage, 600_000);
+        instance.chatMessages.push({ role: "assistant", content });
+        instance.chatMessages = instance.chatMessages.slice(-40);
+        json(response, 200, { board: moved.board, card: moved.card, content });
+      } catch (error) {
+        instance.chatMessages.push({
+          role: "assistant",
+          content: error instanceof Error ? `Implementation request failed: ${error.message}` : "Implementation request failed.",
+          error: true,
+        });
+        instance.chatMessages = instance.chatMessages.slice(-40);
+        throw error;
+      }
+      return;
+    }
+    if (request.method === "PUT" && !route) {
       const body = await readJsonBody(request);
       if ("id" in body) throw new Error("Card ID must not be included in the request body.");
       const input = validateInput({ id, ...body }, updateInput);
       json(response, 200, await updateCard(instance.workspaceRoot, input));
       return;
     }
-    if (request.method === "POST" && moveRoute) {
+    if (request.method === "POST" && route === "move") {
       const input = validateInput({ id, ...(await readJsonBody(request)) }, moveInput);
       json(response, 200, await moveCard(instance.workspaceRoot, input));
       return;
     }
-    if (request.method === "DELETE" && !moveRoute) {
+    if (request.method === "DELETE" && !route) {
       json(response, 200, await deleteCard(instance.workspaceRoot, id));
       return;
     }
@@ -188,8 +298,10 @@ async function handleApi(request, response, instance, pathname) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "The board request failed.";
     instance.log(`Board request failed: ${message}`);
-    const status = error instanceof CanvasError || error instanceof BoardInputError || error instanceof HttpInputError ? 400
-      : error instanceof BoardNotFoundError ? 404 : 500;
+    const status = error.statusCode ?? (
+      error instanceof CanvasError || error instanceof BoardInputError || error instanceof HttpInputError ? 400
+        : error instanceof BoardNotFoundError ? 404 : 500
+    );
     json(response, status, { error: message });
   }
 }
@@ -252,8 +364,8 @@ async function closeServer(server) {
 
 const canvas = createCanvas({
   id: "streamline-training-log-status",
-  displayName: "Training Log Kanban Board",
-  description: "View and collaboratively manage Training Log prototype work as a persistent workspace kanban board.",
+  displayName: "Training Log Work List",
+  description: "Find and collaboratively manage Training Log prototype work in a compact, status-grouped list.",
   actions: [
     {
       name: "list-board",
@@ -313,6 +425,7 @@ const canvas = createCanvas({
 
     const instance = {
       workspaceRoot,
+      chatMessages: [],
       log: (message) => session.log(message),
       server: undefined,
       ready: undefined,

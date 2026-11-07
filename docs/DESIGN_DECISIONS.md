@@ -717,3 +717,27 @@ These remain open unless a later entry resolves them:
 - **Decision:** Store prototype work cards in `docs/PROTOTYPE_BOARD.json`, and use the same validated board operations from the interactive Copilot canvas and agent-invocable actions.
 - **Why:** The canvas should be a bidirectional work surface where the user and agent see and update the same cards, rather than a read-only mirror of status prose.
 - **Consequence:** The first open seeds a versioned board from the current status document. Subsequent changes are authoritative in the board artifact; browser views poll for agent changes. Corrupt or unknown board data is reported and never silently replaced.
+
+## D-087 - Connect board discussions and implementation requests to Copilot
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Provide a discussion composer and per-card Implement button in the board. Discussions ask Copilot to help refine scope and acceptance criteria without editing files or the board; implementation requests pass the selected card to Copilot and move it to In progress.
+- **Why:** Users need to turn rough work into actionable cards and start implementation directly from the shared board.
+- **Consequence:** Both controls send prompts to the current Copilot session. The discussion transcript is temporary to the open canvas instance; implementation requests may modify repository files as directed by the card.
+
+## D-088 - Prefer a compact status-grouped work list over a horizontal kanban
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Present shared work as a searchable, vertical list grouped by status. Keep drag-and-drop between status groups; collapse the Done group by default and make chat and add-work panels collapsible.
+- **Why:** The four-column board was difficult to read and maintain in the narrow VS Code canvas window.
+- **Consequence:** Status groups are vertically stacked without horizontal scrolling. Search expands groups while filtering, and the same workspace board data and agent actions remain unchanged.
+
+## D-089 - Keep failed board discussion prompts available for retry
+
+- **Status:** Accepted
+- **Date:** 2026-11-06
+- **Decision:** Correlate board discussion replies to the submitted user-message ID through session events. If no assistant text arrives, the request fails visibly and the submitted text remains in the composer.
+- **Why:** Users should be able to recover from transient Copilot/session failures without retyping their work.
+- **Consequence:** Root assistant messages are matched by `originatingMessageId`; the listener waits for session completion, surfaces correlated errors or timeouts, and ignores unrelated/sub-agent events. The original message remains available to resubmit.

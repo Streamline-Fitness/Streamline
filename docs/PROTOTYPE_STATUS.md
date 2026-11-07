@@ -6,9 +6,9 @@
 
 - **Overall phase:** Implementation
 - **Current slice:** Web accounts, cloud persistence, and journaling
-- **Next implementation slice:** Complete the first GitHub Pages deployment, verify hosted sign-in and password recovery, then continue with PRs and richer analytics
+- **Next implementation slice:** Verify hosted sign-in, password recovery, and account-data isolation on the deployed site, then continue with PRs and richer analytics
 - **Prototype runnable:** Yes — configure Supabase as described in `README.md`, then run `npm install` and `npm run dev`
-- **Hosting:** GitHub Pages deployment workflow is configured; first deployment still requires repository Pages settings, Supabase Actions variables, and hosted Auth redirect configuration.
+- **Hosting:** GitHub Pages is live at [streamline-fitness.github.io/Streamline](https://streamline-fitness.github.io/Streamline/). The user confirmed the hosted site is working; hosted auth and account isolation still need verification.
 - **Last updated:** 2026-11-06
 
 ## Completed
@@ -114,12 +114,17 @@
 
 ## Recommended next step
 
-Configure GitHub Pages, the two browser-safe Supabase Actions variables, and the hosted Supabase Auth URLs as documented in `README.md`. After the first deployment, verify hosted sign-in, password recovery, document persistence, and the designated account's 46 migrated sessions. If possible, test that a second account cannot read the first account's document. Then continue with PRs and richer analytics. Keep export before prototype cleanup.
+The user confirmed that GitHub Pages hosting is working. Verify hosted sign-in, password recovery, document persistence, and the designated account's 46 migrated sessions. If possible, test that a second account cannot read the first account's document. Then continue with PRs and richer analytics. Keep export before prototype cleanup.
 
 ## Verification history
 
 | Date | Change | Verification |
 | --- | --- | --- |
+| 2026-11-06 | GitHub Pages hosting confirmed working | User confirmed the deployed hosted app is working; hosted auth and account isolation remain to be verified |
+| 2026-11-06 | Correlate board chat replies to their submitted session messages | Board chat now listens for root assistant messages matching the submitted message ID instead of relying on `sendAndWait`'s optional return value; response, early-event, no-response, session-error, and timeout tests pass. Browser failure simulation confirms the draft is retained; a live Copilot retry still needs an idle session |
+| 2026-11-06 | Replaced the horizontal kanban presentation with a compact searchable work list | At 320px, 440px, and 768px widths there is no page or list horizontal overflow; filtering reveals matching cards and expands status groups, utility panels start collapsed, and a temporary card successfully moved by drag/drop before being removed |
+| 2026-11-06 | Simplified board card movement to drag-and-drop | Removed the per-card destination dropdown and Move card button; browser verification confirms card drag and column drop handlers remain |
+| 2026-11-06 | Added board discussion composer and per-card Implement control | Extension reload and canvas discovery/open/list-board verified; browser confirms the composer and Implement controls render. A live chat request while this session was busy surfaced `Timeout after 120000ms waiting for session.idle`; use the controls when Copilot is idle to get a reply or start implementation |
 | 2026-11-06 | Restored horizontal kanban navigation | Four side-by-side columns scroll within the board; scrollbar and Previous/Next controls work at narrow widths, with no page-level horizontal overflow from 360px to 1000px |
 | 2026-11-06 | Clarified card movement and temporarily stacked columns (superseded) | UI explains Destination + Move card; stacking was replaced with the horizontally scrollable board |
 | 2026-11-06 | Replaced the status snapshot with a bidirectional prototype kanban board | Board CRUD, persistence, invalid-data protection, concurrent writes, browser UI, and agent actions verified |

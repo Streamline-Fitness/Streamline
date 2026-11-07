@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <title>Training Log Kanban Board</title>
+    <title>Training Log Work List</title>
     <link rel="stylesheet" href="/canvas.css">
     <script type="module" src="/client.js"></script>
   </head>
@@ -13,44 +13,60 @@
       <header class="page-header">
         <div>
           <p class="eyebrow">STREAMLINE FITNESS / PROTOTYPE</p>
-          <h1>Training Log board</h1>
-          <p class="intro">Move work between columns. Changes are shared with the agent and saved in this workspace.</p>
+          <h1>Training Log work</h1>
+          <p class="intro">A compact list grouped by status. Drag work between sections to update it.</p>
         </div>
       </header>
 
-      <form id="new-card-form" class="new-card">
-        <h2>Add a card</h2>
-        <div class="new-card-fields">
-          <label>
-            Title
-            <input id="new-title" name="title" maxlength="140" required placeholder="What needs doing?">
-          </label>
-          <label>
-            Description <span class="optional">(optional)</span>
-            <input id="new-description" name="description" maxlength="2000" placeholder="Add context">
-          </label>
-          <label>
-            Column
-            <select id="new-column" name="column">
-              <option value="backlog">Backlog</option>
-              <option value="ready">Ready</option>
-              <option value="inProgress">In progress</option>
-              <option value="done">Done</option>
-            </select>
-          </label>
-          <button type="submit">Add card</button>
-        </div>
-      </form>
+      <details class="utility-panel">
+        <summary>Work with Copilot</summary>
+        <section class="copilot-chat" aria-labelledby="chat-heading">
+          <h2 id="chat-heading">Discuss and shape a work item</h2>
+          <p>Talk through scope, dependencies, and done criteria. Discussion does not add a card automatically.</p>
+          <div id="chat-history" class="chat-history" role="log" aria-live="polite" aria-relevant="additions"></div>
+          <form id="chat-form" class="chat-form">
+            <label for="chat-message">Message Copilot about a work item</label>
+            <textarea id="chat-message" name="message" rows="3" maxlength="4000" required placeholder="What are you trying to accomplish? What should the finished work do?"></textarea>
+            <div class="chat-footer">
+              <span class="chat-limit">Up to 4,000 characters</span>
+              <button id="chat-send" type="submit">Send to Copilot</button>
+            </div>
+          </form>
+        </section>
+      </details>
+
+      <details class="utility-panel">
+        <summary>Add a work item</summary>
+        <form id="new-card-form" class="new-card">
+          <div class="new-card-fields">
+            <label>
+              Title
+              <input id="new-title" name="title" maxlength="140" required placeholder="What needs doing?">
+            </label>
+            <label>
+              Description <span class="optional">(optional)</span>
+              <input id="new-description" name="description" maxlength="2000" placeholder="Add context">
+            </label>
+            <label>
+              Status
+              <select id="new-column" name="column">
+                <option value="backlog">Backlog</option>
+                <option value="ready">Ready</option>
+                <option value="inProgress">In progress</option>
+                <option value="done">Done</option>
+              </select>
+            </label>
+            <button type="submit">Add work item</button>
+          </div>
+        </form>
+      </details>
 
       <p id="message" class="message" role="status" aria-live="polite">Loading board…</p>
       <div class="board-toolbar">
-        <p class="drag-hint">Scroll sideways to see every column. Drag a card, or choose a destination and select <strong>Move card</strong>.</p>
-        <div class="scroll-controls" aria-label="Board scrolling">
-          <button id="scroll-left" type="button" aria-label="Scroll board left">← Previous</button>
-          <button id="scroll-right" type="button" aria-label="Scroll board right">Next →</button>
-        </div>
+        <label class="search-label" for="work-search">Find work</label>
+        <input id="work-search" type="search" placeholder="Filter by title or description">
       </div>
-      <section id="board" class="board" aria-label="Training Log kanban board. Scroll horizontally to see all columns." tabindex="0"></section>
+      <section id="board" class="board" aria-label="Training Log work items grouped by status"></section>
     </main>
   </body>
 </html>
